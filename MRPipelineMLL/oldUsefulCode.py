@@ -1,4 +1,6 @@
-                
+'''
+    Random code that might someday come in handy, so we don't have to look it up in the old github files
+'''             
 # Now built in, but we might have to swap to create_window() sometime, so leaving it for then
 # case render_mode.BLACK_BACKGROUND: 
 #     # Create visualizer

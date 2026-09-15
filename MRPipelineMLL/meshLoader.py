@@ -1,6 +1,10 @@
 import open3d as o3d
 import numpy as np
 
+'''
+    The meshLoader will convert all path strings to actual meshes and return these
+'''
+
 class meshLoader():
     def __init__(self):
         pass
