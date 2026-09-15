@@ -5,3 +5,15 @@ This is the epic process of creating a Multimedia Retrieval pipeline with:
 * Lela van Zoen (1833022)
 
 Assignment: https://webspace.science.uu.nl/~telea001/MR/Assignment
+
+# Database:
+The database that we use can be downloaded from: https://github.com/MaxRee94/ShapeDatabase_INFOMR
+This database needs to be renamed to "OriginalShapeDatabase" and should be located under "Data" in the top folder, the hierarchy for data should be as follows:
+Multimedia-Retrieval
+ | Data
+   | OriginalShapeDatabase
+     | AircraftBuoyant
+     | Apartment
+     | ...
+ | MRPipelineMLL
+   | ... .py
