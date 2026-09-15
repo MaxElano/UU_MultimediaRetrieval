@@ -1,10 +1,12 @@
-This is the epic process of creating a Multimedia Retrieval pipeline with:
+This is the epic creation of a Multimedia Retrieval pipeline for 3D models with:
 
 * Max Ferket (7337248)
 * Laura Willems (7906919)
 * Lela van Zoen (1833022)
 
 Assignment: https://webspace.science.uu.nl/~telea001/MR/Assignment
+
+pip: https://pypi.org/project/MRPipelineMLL/
 
 # Database:
 The database that we use can be downloaded from: https://github.com/MaxRee94/ShapeDatabase_INFOMR
