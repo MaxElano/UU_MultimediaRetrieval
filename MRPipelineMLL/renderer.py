@@ -1,5 +1,13 @@
 import open3d as o3d
 import numpy as np
+from enum import Enum
+
+class render_mode(Enum):
+    BLACK_BACKGROUND = 0
+    SMOOTHSHADE = 1
+    WIREFRAME = 2
+    WIREFRAME_ON_SHADED = 3
+    WORLD_AXES = 4
 
 class renderer():
     def __init__(self):
@@ -7,16 +15,15 @@ class renderer():
 
     # Visualize a mesh
     def visualize_mesh(self, mesh, visual_option):
-        vis_option = "smoothshade"
-        if vis_option == "smoothshade":
+        if visual_option == render_mode.SMOOTHSHADE:
             o3d.visualization.draw_geometries([mesh], width=1280, height=720)
-        elif vis_option == "wireframe_on_shaded":
+        elif visual_option == render_mode.WIREFRAME_ON_SHADED:
             o3d.visualization.draw_geometries([mesh], width=1280, height=720, mesh_show_wireframe=True)
-        elif vis_option == "wireframe":
+        elif visual_option == render_mode.WIREFRAME:
             # We first need to obtain a lineset of the wireframe if we don't want to render the mesh itself
             wireframe = o3d.geometry.LineSet.create_from_triangle_mesh(mesh) 
             o3d.visualization.draw_geometries([wireframe], width=1280, height=720)
-        elif vis_option == "world_axes":
+        elif visual_option == render_mode.WORLD_AXES:
             # Display the mesh including a world axis system.
 
             # Create the endpoints of each line. Each line is unit-length.
@@ -39,7 +46,7 @@ class renderer():
 
             # Render the line set and the mesh
             o3d.visualization.draw_geometries([mesh, world_axes], width=1280, height=720)
-        elif vis_option == "black_background":
+        elif visual_option == render_mode.BLACK_BACKGROUND:
             # Create visualizer
             vis = o3d.visualization.Visualizer()
             vis.create_window()
