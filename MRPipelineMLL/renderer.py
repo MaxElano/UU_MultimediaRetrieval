@@ -1,6 +1,7 @@
 import open3d as o3d
 import numpy as np
 from enum import Enum
+import config
 
 class render_mode(Enum):
     #
@@ -36,9 +37,10 @@ class renderer():
 
             self.visualizer.register_key_callback(ord("A"), renderer.show_animation)
             self.visualizer.register_key_callback(ord("M"), renderer.next_render_mode)
+            self.visualizer.register_key_callback(ord("Y"), renderer.import_random_mesh)
+            self.visualizer.register_key_callback(ord("U"), renderer.delete_all_meshes)
 
     def launch_renderer(self):
-        
         self.visualizer.run()
         self.visualizer.destroy_window()
 
@@ -73,26 +75,26 @@ class renderer():
     
     # Function when setting render mode in code
     def set_render_mode(self, visual_option):
-        renderer.set_render_mode_button(visualizer=self.visualizer, visual_option=visual_option)
+        config.rd.set_render_mode_button(visualizer=self.visualizer, visual_option=visual_option)
 
     # Function used in with keybinds
     def next_render_mode(vis):
-            renderer.set_render_mode_button(vis, renderer.current_render_mode.next)
+        config.rd.set_render_mode_button(vis, config.rd.current_render_mode.next)
 
-    def set_render_mode_button(visualizer, visual_option):
-        renderer.current_render_mode = visual_option
+    def set_render_mode_button(self, visualizer, visual_option):
+        self.current_render_mode = visual_option
         view_status = visualizer.get_view_status()
         match visual_option:
             case render_mode.EMPTY:
                 visualizer.clear_geometries()
             case render_mode.NORMAL:
                 visualizer.clear_geometries()
-                if(len(renderer.all_meshes) > 0):
-                    np.vectorize(visualizer.add_geometry)(renderer.all_meshes)
+                if(len(self.all_meshes) > 0):
+                    np.vectorize(visualizer.add_geometry)(self.all_meshes)
             case render_mode.WIREFRAME_ONLY:
                 visualizer.clear_geometries()
-                if(len(renderer.all_wireframes) > 0):
-                    np.vectorize(visualizer.add_geometry)(renderer.all_wireframes)
+                if(len(self.all_wireframes) > 0):
+                    np.vectorize(visualizer.add_geometry)(self.all_wireframes)
         visualizer.set_view_status(view_status)
 
 
@@ -100,15 +102,25 @@ class renderer():
     # ==== Animation Functions ====
     # Used with keybind
     def show_animation(vis):
-        if (renderer.is_animating):
+        if (config.rd.is_animating):
             vis.register_animation_callback(None)
         else:
             vis.register_animation_callback(renderer.animation)
-        renderer.is_animating = not renderer.is_animating
+        config.rd.is_animating = not config.rd.is_animating
     
     # Used with animation callbacks
-    def animation(vis):
-            ctr = vis.get_view_control()
-            ctr.rotate(10.0,0.0)
-            return False
+    def animation(vis):   
+        ctr = vis.get_view_control()
+        ctr.rotate(10.0,0.0)
+        return False
 
+  # ==== Fun Additions ====
+    def import_random_mesh(vis):
+        mesh = config.ml.load_random_mesh()
+        config.rd.add_mesh(mesh=mesh)
+        vis.reset_view_point(reset_bounding_box=True)
+        
+    def delete_all_meshes(vis):
+        config.rd.all_meshes = []
+        config.rd.all_wireframes = []
+        vis.clear_geometries()
