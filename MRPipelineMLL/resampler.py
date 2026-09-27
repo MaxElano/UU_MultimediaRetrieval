@@ -43,7 +43,7 @@ class resampler():
                 mesh_before = o3d.io.read_triangle_mesh(file_path)
 
                 #determines if mesh needs to be simplified
-                if len(mesh_before.triangles) <= min:
+                if len(mesh_before.vertices) <= min:
                     mesh_after = self.refine(mesh_before, min)
                     o3d.io.write_triangle_mesh(file_path, mesh_after)
                     simplified_count += 1
@@ -55,33 +55,33 @@ class resampler():
         
 
     # refines a mesh so that its number of faces is higher than a given number
-    def refine(self, mesh, minFaceCount):
-        refinedmesh = mesh.subdivide_loop(number_of_iterations=1)
-        if len(refinedmesh.triangles) >= minFaceCount: 
-            return refinedmesh
+    def refine(self, mesh, min_vertices):
+        refinedmesh = mesh.subdivide_midpoint(number_of_iterations=1)
+        if len(refinedmesh.vertices) >= min_vertices: 
+            return refinedmesh.subdivide_loop(number_of_iterations=1)
         else:
-            return self.refine(refinedmesh, minFaceCount)
+            return self.refine(refinedmesh, min_vertices)
 
-    def simplify_by_decimation(self, mesh, maxFaceCount):
-        simplifiedmesh = mesh.simplify_quadric_decimation(target_number_of_triangles=maxFaceCount)
+    # simplify a mesh to have a certain amount of faces
+    def simplify_by_decimation(self, mesh, max_faces):
+        simplifiedmesh = mesh.simplify_quadric_decimation(target_number_of_triangles=max_faces)
         return simplifiedmesh
 
-    def simplify_by_vertex_clustering(self, mesh, maxFaceCount):
-        # in case we wanna use this option
-        pass
 
     # function to showcase resampled models
-    def render_before_after(self, meshpath, min, max):
+    def render_before_after(self, meshpath, min = 100, max = 10000):
         config.initialize()
         mesh_before = config.ml.load_mesh(meshpath)
+        print(mesh_before)        
 
-        if len(mesh_before.triangles) <= min:
+        if len(mesh_before.vertices) <= min:
             mesh_after = self.refine(mesh_before, min)
         elif len(mesh_before.vertices) >= max:
-            mesh_after = self.simplify_by_decimation(mesh_before, max)
+            mesh_after = self.simplify_by_decimation(mesh_before, max)  
         else:
             mesh_after = mesh_before
 
+        print(mesh_after)
         # Render mesh
         config.rd.set_render_mode(render_mode.NORMAL)
         config.rd.show_world_axis(True)
