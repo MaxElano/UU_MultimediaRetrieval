@@ -1,6 +1,16 @@
 import open3d as o3d
 import numpy as np
 
+class normalizerMeshValues():
+    def __init__(self, mesh):
+        self.vertices = np.asarray(mesh.vertices)
+        self.face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
+        self.surface_area =  np.sum(self.face_areas) # Can also be done with mesh.get_surface_area() but this should be more consistent with other values used
+        self.triangles = np.asarray(mesh.triangles)
+        self.face_centres = np.average(np.asarray(mesh.vertices)[self.triangles], axis=1)
+        self.face_areas_reshaped = np.reshape(np.repeat(self.face_areas,3), (self.face_areas.size, 3))
+        self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
+
 # The best order is translate -> pca -> re-align -> flip -> scale -> remesh
 # Remeshing could be done at the start for big meshes, to simplify them first and send less data through pipeline
 # And remesh at end for small meshes, to refine them at the end to have less data through pipeline
@@ -11,38 +21,35 @@ class shapeNormalizer():
         pass
     
     def run_one_mesh(self, mesh, path):
-        
-        mesh = self.translate_to_barycenter(mesh)
-        eigen_vectors = self.compute_principal_axes(mesh)
-        mesh = self.align_to_world_frame(mesh, eigen_vectors)
-        mesh = self.flip_test(mesh)
-        mesh = self.scale_to_unit(mesh)
+        mesh_values = normalizerMeshValues(mesh)
+        self.translate_to_barycenter(mesh_values)
+        eigen_vectors = self.compute_principal_axes(mesh_values)
+        self.align_to_world_frame(mesh_values, eigen_vectors)
+        self.flip_test(mesh_values)
+        self.scale_to_unit(mesh_values)
+        #Save
         return mesh #Temporary
         #self.save_mesh(mesh, path)
         
     # Take average of all face centers, with face size scaling
     # TODO add step in report, show image with open3d centre sphere to show this one is better
-    def translate_to_barycenter(self, mesh):
-        weighted_face_centres = shapeNormalizer.calculate_weighted_face_centres(mesh)
+    def translate_to_barycenter(self, mesh_values):        
+        numerator = np.sum(mesh_values.weighted_face_centres, axis=0)
+        barycenter = numerator / mesh_values.surface_area
         
-        numerator = np.sum(weighted_face_centres, axis=0)
-        denominator = shapeNormalizer.calculate_custom_surface_area(mesh)
-        barycenter = numerator / denominator
+        mesh_values.vertices -= barycenter
+        mesh_values.face_centres -= barycenter
+        mesh_values.weighted_face_centres -= (barycenter * mesh_values.face_areas)
         
-        mesh = mesh.translate(translation=-barycenter, relative=True)
-        return mesh
-    
     # Could maybe be done with get_oriented_bounding_box(), but uncertain about results cuz of other open3d function results/methods
     # Using weighted face coords, we think this will partly resolve the dense point issue
-    def compute_principal_axes(self, mesh): 
-        face_centers = shapeNormalizer.calculate_face_centres(mesh)
-        face_weights = shapeNormalizer.calculate_face_areas(mesh)
-        xx = shapeNormalizer.calculate_covariance(face_centers, face_weights, 0, 0)
-        xy = shapeNormalizer.calculate_covariance(face_centers, face_weights, 0, 1)
-        xz = shapeNormalizer.calculate_covariance(face_centers, face_weights, 0, 2)
-        yy = shapeNormalizer.calculate_covariance(face_centers, face_weights, 1, 1)
-        yz = shapeNormalizer.calculate_covariance(face_centers, face_weights, 1, 2)
-        zz = shapeNormalizer.calculate_covariance(face_centers, face_weights, 2, 2)
+    def compute_principal_axes(self, mesh_values): 
+        xx = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 0, 0, mesh_values.surface_area)
+        xy = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 0, 1, mesh_values.surface_area)
+        xz = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 0, 2, mesh_values.surface_area)
+        yy = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 1, 1, mesh_values.surface_area)
+        yz = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 1, 2, mesh_values.surface_area)
+        zz = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 2, 2, mesh_values.surface_area)
         covariance_matrix = np.asarray([[xx, xy, xz]
                                        ,[xy, yy, yz]
                                        ,[xz, yz, zz]])
@@ -50,71 +57,46 @@ class shapeNormalizer():
         
         return eigen_vectors
     
-    def align_to_world_frame(self, mesh, eigen_vectors):
+    def align_to_world_frame(self, mesh_values, eigen_vectors):
         # length of a on axis b (ab) = ||a|| cos (theta)
         # -> ab = a dot b(unit)
         # eigenvectors are already normalized
         # https://en.wikipedia.org/wiki/Dot_product
         
-        vertices = np.asarray(mesh.vertices)
-        new_vertices = np.dot(vertices, eigen_vectors)
-        mesh.vertices = new_vertices
+        mesh_values.vertices = np.dot(mesh_values.vertices, eigen_vectors)
+        mesh_values.face_centres = np.dot(mesh_values.face_centres, eigen_vectors)
+        mesh_values.weighted_face_centres = np.dot(mesh_values.weighted_face_centres, eigen_vectors)
         
-        #TODO align the mesh to the correct world_frame using pca
-        return mesh
-    
-    def flip_test(self, mesh):
-        weighted_face_centres = shapeNormalizer.calculate_weighted_face_centres(mesh)
-                
-        x = np.sum(np.sign(weighted_face_centres[:,0:1]) * (weighted_face_centres[:,0:1] ** 2), axis=0)
-        y = np.sum(np.sign(weighted_face_centres[:,1:2]) * (weighted_face_centres[:,1:2] ** 2), axis=0)
-        z = np.sum(np.sign(weighted_face_centres[:,2:3]) * (weighted_face_centres[:,2:3] ** 2), axis=0)
+    # Use both weighted and unweighted, otherwise the weights might explode the value
+    def flip_test(self, mesh_values):                
+        x = np.sum(np.sign(mesh_values.face_centres[:,0:1]) * (mesh_values.weighted_face_centres[:,0:1] * mesh_values.face_centres[:,0:1]), axis=0)
+        y = np.sum(np.sign(mesh_values.face_centres[:,1:2]) * (mesh_values.weighted_face_centres[:,1:2] * mesh_values.face_centres[:,1:2]), axis=0)
+        z = np.sum(np.sign(mesh_values.face_centres[:,2:3]) * (mesh_values.weighted_face_centres[:,2:3] * mesh_values.face_centres[:,2:3]), axis=0)
 
-        rotation_matrix = np.diagflat([np.sign(x),np.sign(y),np.sign(z)])
-        mesh = mesh.rotate(rotation_matrix)
+        mesh_values.vertices[:,0:1] *= np.sign(x)
+        mesh_values.vertices[:,1:2] *= np.sign(y)
+        mesh_values.vertices[:,2:3] *= np.sign(z)
         
-        return mesh
+        #Stop updating other mesh values, as we do not need them anymore (save some performance)
+        #From here on other coords are incorrect (except for vertices)
     
-    def scale_to_unit(self, mesh):
-        max_bounds = mesh.get_max_bound()
-        min_bounds = mesh.get_min_bound()
+    def scale_to_unit(self, mesh_values):
+        max_bounds = np.max(mesh_values.vertices, axis=0)
+        min_bounds = np.min(mesh_values.vertices, axis=0)
         max_diff = np.max(max_bounds - min_bounds)
-        mesh = mesh.scale(1/max_diff, [0,0,0])
-        return mesh
+        mesh_values.vertices *= (1/max_diff)
     
-    def save_mesh(self, mesh, path):
+    def save_mesh(self, mesh_values, path):
+        mesh_values.vertices
+        mesh_values.triangles
         #TODO Save new mash to correct path
-        pass
     
     
     # ==== UTIL ====
         
-    def precollect_variables(mesh):
-        vertices = np.asarray(mesh.vertices)
-        faces = np.asarray(mesh.faces)
-        
-    
-    def calculate_face_areas(mesh):
-        return np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
-    
-    # Can also be done with mesh.get_surface_area() but this should be more consistent with other values used
-    def calculate_custom_surface_area(mesh):
-        face_areas = shapeNormalizer.calculate_face_areas(mesh)
-        return np.sum(face_areas)
-
-    def calculate_face_centres(mesh):
-        vertex_indices = np.asarray(mesh.triangles)
-        return np.average(np.asarray(mesh.vertices)[vertex_indices], axis=1)
-    
-    def calculate_weighted_face_centres(mesh):
-        face_areas = shapeNormalizer.calculate_face_areas(mesh)
-        face_areas_reshaped = np.reshape(np.repeat(face_areas,3), (face_areas.size, 3))
-        face_centres = shapeNormalizer.calculate_face_centres(mesh)
-        return face_areas_reshaped * face_centres
-  
-    def calculate_covariance(coords, weights, axis_idx_1, axis_idx_2):
-        weighted_total = np.sum(coords[:, axis_idx_1 : axis_idx_1 + 1] * coords[:, axis_idx_2 : axis_idx_2 + 1] * weights)
-        total = weighted_total / np.sum(weights)
+    def calculate_covariance(coords, weighted_face_centres, axis_idx_1, axis_idx_2, surface_area): 
+        weighted_total = np.sum(coords[:, axis_idx_1 : axis_idx_1 + 1] * weighted_face_centres[:, axis_idx_2 : axis_idx_2 + 1]) # Use one weighted to only include face weight once
+        total = weighted_total / np.sum(surface_area)
         variance = total / (coords.shape[0] - 1)
         return variance
     
