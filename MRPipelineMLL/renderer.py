@@ -26,7 +26,7 @@ class renderer():
     
     visualizer = o3d.visualization.VisualizerWithKeyCallback()
     
-    def __init__(self, width=1280, height=720, background_color = [0, 0, 0]):    
+    def __init__(self, width=1280, height=720, background_color = [0.8, 0.8, 0.8]):    
             self.width = width
             self.height = height
             
@@ -46,7 +46,10 @@ class renderer():
 
     def add_mesh(self, 
                  mesh: o3d.geometry.Geometry, 
+                 label: str,
     ):
+        config.lg.log(label)
+        
         self.all_meshes.append(mesh)
         wf = renderer.generate_wireframe(mesh)
         self.all_wireframes.append(wf)
@@ -58,8 +61,9 @@ class renderer():
         
     def add_meshes(self, 
                    meshes: list[o3d.geometry.Geometry], 
+                   labels: list[str],
     ):
-        np.vectorize(self.add_mesh)(meshes)        
+        np.vectorize(self.add_mesh)(meshes,labels)        
 
     # Generate wireframe of SINGLE mesh
     def generate_wireframe(mesh):
@@ -116,8 +120,8 @@ class renderer():
 
   # ==== Fun Additions ====
     def import_random_mesh(vis):
-        mesh = config.ml.load_random_mesh()
-        config.rd.add_mesh(mesh=mesh)
+        mesh, path = config.ml.load_random_mesh()
+        config.rd.add_mesh(mesh=mesh, label=path)
         vis.reset_view_point(reset_bounding_box=True)
         
     def delete_all_meshes(vis):
