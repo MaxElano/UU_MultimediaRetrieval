@@ -7,5 +7,5 @@ class logger:
     def __init__(self):
         pass
     
-    def log(text: str):
+    def log(self, text: str):
         print(text)
