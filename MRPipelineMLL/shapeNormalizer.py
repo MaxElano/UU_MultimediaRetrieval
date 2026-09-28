@@ -1,5 +1,6 @@
 import open3d as o3d
 import numpy as np
+import os
 
 class normalizerMeshValues():
     def __init__(self, mesh):
@@ -20,16 +21,14 @@ class shapeNormalizer():
     def __init__(self):
         pass
     
-    def run_one_mesh(self, mesh, path):
+    def run_one_mesh(self, mesh, object_path):
         mesh_values = normalizerMeshValues(mesh)
         self.translate_to_barycenter(mesh_values)
         eigen_vectors = self.compute_principal_axes(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
         self.flip_test(mesh_values)
         self.scale_to_unit(mesh_values)
-        #Save
-        return mesh #Temporary
-        #self.save_mesh(mesh, path)
+        self.save_mesh(mesh_values, object_path)
         
     # Take average of all face centers, with face size scaling
     # TODO add step in report, show image with open3d centre sphere to show this one is better
@@ -39,17 +38,17 @@ class shapeNormalizer():
         
         mesh_values.vertices -= barycenter
         mesh_values.face_centres -= barycenter
-        mesh_values.weighted_face_centres -= (barycenter * mesh_values.face_areas)
+        mesh_values.weighted_face_centres -= (mesh_values.face_areas_reshaped * barycenter)
         
     # Could maybe be done with get_oriented_bounding_box(), but uncertain about results cuz of other open3d function results/methods
     # Using weighted face coords, we think this will partly resolve the dense point issue
     def compute_principal_axes(self, mesh_values): 
-        xx = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 0, 0, mesh_values.surface_area)
-        xy = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 0, 1, mesh_values.surface_area)
-        xz = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 0, 2, mesh_values.surface_area)
-        yy = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 1, 1, mesh_values.surface_area)
-        yz = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 1, 2, mesh_values.surface_area)
-        zz = shapeNormalizer.calculate_covariance(mesh_values.face_centers, mesh_values.weighted_face_centres, 2, 2, mesh_values.surface_area)
+        xx = shapeNormalizer.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 0, 0, mesh_values.surface_area)
+        xy = shapeNormalizer.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 0, 1, mesh_values.surface_area)
+        xz = shapeNormalizer.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 0, 2, mesh_values.surface_area)
+        yy = shapeNormalizer.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 1, 1, mesh_values.surface_area)
+        yz = shapeNormalizer.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 1, 2, mesh_values.surface_area)
+        zz = shapeNormalizer.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 2, 2, mesh_values.surface_area)
         covariance_matrix = np.asarray([[xx, xy, xz]
                                        ,[xy, yy, yz]
                                        ,[xz, yz, zz]])
@@ -86,10 +85,13 @@ class shapeNormalizer():
         max_diff = np.max(max_bounds - min_bounds)
         mesh_values.vertices *= (1/max_diff)
     
-    def save_mesh(self, mesh_values, path):
-        mesh_values.vertices
-        mesh_values.triangles
-        #TODO Save new mash to correct path
+    def save_mesh(self, mesh_values, object_path):
+        total_path = "Data\\NormalizedDatabase\\" + object_path
+        if not os.path.exists(total_path):
+            with open(total_path, "w") as file:
+                file.write("")
+        new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
+        o3d.io.write_triangle_mesh(total_path, new_mesh)
     
     
     # ==== UTIL ====
@@ -109,12 +111,13 @@ config.initialize()
 mesh_after, path = config.ml.load_random_mesh()  
 
 sn = shapeNormalizer()
-mesh_after = sn.run_one_mesh(mesh_after, '')
+sn.run_one_mesh(mesh_after, path[27:])
 
 # Render mesh
 config.rd.set_render_mode(render_mode.NORMAL)
 config.rd.show_world_axis(True)
-config.rd.add_mesh(mesh_after, path)
+mesh = config.ml.load_mesh("Data\\NormalizedDatabase\\" + path[27:])
+config.rd.add_mesh(mesh, path[27:])
 centre = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
 sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
 sphere.paint_uniform_color(np.asarray([0,0,1]))
