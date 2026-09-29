@@ -73,7 +73,24 @@ class renderer():
     def show_world_axis(self, show):
         self.render_options.show_coordinate_frame = show
 
+    def create_custom_world_axis() -> o3d.geometry.LineSet:
+        world_axis_meshes = []
+        scale = 0.01
+        mesh1 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+        mesh1.paint_uniform_color(np.asarray([0,0,1]))
+        world_axis_meshes.append(mesh1)
+        mesh2 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+        mesh2.paint_uniform_color(np.asarray([0,1,0]))
+        r = mesh2.get_rotation_matrix_from_xyz((-np.pi / 2, 0, 0))
+        mesh2.rotate(r, [0,0,0])
+        world_axis_meshes.append(mesh2)
+        mesh3 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+        mesh3.paint_uniform_color(np.asarray([1,0,0]))
+        r = mesh3.get_rotation_matrix_from_xyz((0, np.pi / 2, 0))
+        mesh3.rotate(r, [0,0,0])
+        world_axis_meshes.append(mesh3)
 
+        return world_axis_meshes
 
     # ==== Render Mode Functions ====
     

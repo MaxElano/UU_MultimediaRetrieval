@@ -1,6 +1,8 @@
 import open3d as o3d
 import numpy as np
 import os
+import config
+import time
 
 class normalizerMeshValues():
     def __init__(self, mesh):
@@ -13,22 +15,45 @@ class normalizerMeshValues():
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
 # The best order is translate -> pca -> re-align -> flip -> scale -> remesh
-# Remeshing could be done at the start for big meshes, to simplify them first and send less data through pipeline
-# And remesh at end for small meshes, to refine them at the end to have less data through pipeline
-# Cleanest standard is remesh at end
-# TODO: Can be optimized to pass along arrays like face areas and positions, as not to recalculate them each step
 class shapeNormalizer():
     def __init__(self):
         pass
     
-    def run_one_mesh(self, mesh, object_path):
+    def normalize_all_meshes(self, path_to_database, new_folder_path, show_update_every = 0):
+        #show_update_every = 0 equals no updates
+        config.lg.log(f"Starting normalization process at location {path_to_database}")
+        start = time.time()
+        
+        all_files = []
+        for root, dirs, files in os.walk(path_to_database):
+            for file in files:
+                if file.endswith(".obj"):
+                    all_files.append(os.path.join(root[27:], file))
+        if not os.path.exists(new_folder_path):
+            os.makedirs(new_folder_path)
+        
+        number_of_files = len(all_files)
+        config.lg.log(f"{number_of_files} objects found")
+
+        for i in range(number_of_files):
+            mesh = config.ml.load_mesh(path_to_database + '\\' + all_files[i])
+            self.run_one_mesh(mesh, all_files[i], new_folder_path)
+            if (i > 0):
+                if (i % show_update_every == 0): #Can't be combined cuz python sucks
+                    config.lg.log(f"{i} of {number_of_files} objects normalized: {int((i / number_of_files) * 100)}%")
+                
+        end = time.time()
+        duration = end-start
+        config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
+        
+    def run_one_mesh(self, mesh, object_path, new_folder_path):
         mesh_values = normalizerMeshValues(mesh)
         self.translate_to_barycenter(mesh_values)
         eigen_vectors = self.compute_principal_axes(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
         self.flip_test(mesh_values)
         self.scale_to_unit(mesh_values)
-        self.save_mesh(mesh_values, object_path)
+        self.save_mesh(mesh_values, object_path, new_folder_path)
         
     # Take average of all face centers, with face size scaling
     # TODO add step in report, show image with open3d centre sphere to show this one is better
@@ -84,13 +109,18 @@ class shapeNormalizer():
         max_diff = np.max(max_bounds - min_bounds)
         mesh_values.vertices *= (1/max_diff)
     
-    def save_mesh(self, mesh_values, object_path):
-        total_path = "Data\\NormalizedDatabase\\" + object_path
-        if not os.path.exists("Data\\NormalizedDatabase\\" + object_path.split('\\')[0]):
-            os.makedirs("Data\\NormalizedDatabase\\" + object_path.split('\\')[0])
+    def save_mesh(self, mesh_values, object_path, new_folder_path):
+        total_path = new_folder_path + '\\' + object_path
+        if not os.path.exists(new_folder_path + '\\' + object_path.split('\\')[0]):
+            os.makedirs(new_folder_path + '\\' + object_path.split('\\')[0])
         if not os.path.isfile(total_path):
             with open(total_path, "w") as file:
                 file.write("")
+        else:
+            with open(total_path, "w") as file:
+                file.seek(0)
+                file.truncate()
+                
         new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
         o3d.io.write_triangle_mesh(total_path, new_mesh)
     
@@ -103,70 +133,8 @@ class shapeNormalizer():
         variance = total / (coords.shape[0] - 1)
         return variance
     
-        
-
-        
-import config
-from renderer import render_mode
-
-def create_world_axis() -> o3d.geometry.LineSet:
-    # line_endpoints = [
-    #     [0, 0, 0],
-    #     [1, 0, 0], # x
-    #     [0, 1, 0], # y UP
-    #     [0, 0, 1]  # z
-    # ]
-    # line_indices = [[0, 1], [0, 2], [0, 3]]
-    
-    # world_axis = o3d.geometry.LineSet(
-    #     points=o3d.utility.Vector3dVector(line_endpoints),
-    #     lines=o3d.utility.Vector2iVector(line_indices),
-    # )
-    # world_axis.colors = o3d.utility.Vector3dVector(np.asarray(line_endpoints)[1:]) 
-    world_axis_meshes = []
-    scale = 0.01
-    mesh1 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
-    mesh1.paint_uniform_color(np.asarray([0,0,1]))
-    world_axis_meshes.append(mesh1)
-    mesh2 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
-    mesh2.paint_uniform_color(np.asarray([0,1,0]))
-    r = mesh2.get_rotation_matrix_from_xyz((-np.pi / 2, 0, 0))
-    mesh2.rotate(r, [0,0,0])
-    world_axis_meshes.append(mesh2)
-    mesh3 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
-    mesh3.paint_uniform_color(np.asarray([1,0,0]))
-    r = mesh3.get_rotation_matrix_from_xyz((0, np.pi / 2, 0))
-    mesh3.rotate(r, [0,0,0])
-    world_axis_meshes.append(mesh3)
-
-    return world_axis_meshes
-
-config.initialize()
-orignal_mesh, path = config.ml.load_random_mesh()  
-
+config.initialize(skip_renderer=True)
 sn = shapeNormalizer()
-sn.run_one_mesh(orignal_mesh, path[27:])
-
-# Render mesh
-config.rd.set_render_mode(render_mode.NORMAL)
-config.rd.show_world_axis(True)
-
-new_mesh = config.ml.load_mesh("Data\\NormalizedDatabase\\" + path[27:])
-
-orignal_mesh.paint_uniform_color(np.asarray([1,0,0]))
-new_mesh.paint_uniform_color(np.asarray([0,0,1]))
-config.rd.add_mesh(orignal_mesh, 'Original')
-config.rd.add_mesh(new_mesh, 'Normalized')
-
-centre = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
-sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
-sphere.paint_uniform_color(np.asarray([0,0,1]))
-config.rd.add_mesh(centre, "Axis")
-config.rd.add_mesh(sphere, "Center")
-meshes = create_world_axis()
-config.rd.add_meshes(meshes, "Custom World Axis")
-
-config.rd.launch_renderer()
-
-
-
+original_path = 'Data\\OriginalShapeDataBase'
+new_path = 'Data\\NormalizedDatabase'
+sn.normalize_all_meshes(original_path, new_path, show_update_every=100)
