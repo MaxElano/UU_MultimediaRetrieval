@@ -105,9 +105,42 @@ class shapeNormalizer():
         return variance
     
         
+
         
 import config
 from renderer import render_mode
+
+def create_world_axis() -> o3d.geometry.LineSet:
+    # line_endpoints = [
+    #     [0, 0, 0],
+    #     [1, 0, 0], # x
+    #     [0, 1, 0], # y UP
+    #     [0, 0, 1]  # z
+    # ]
+    # line_indices = [[0, 1], [0, 2], [0, 3]]
+    
+    # world_axis = o3d.geometry.LineSet(
+    #     points=o3d.utility.Vector3dVector(line_endpoints),
+    #     lines=o3d.utility.Vector2iVector(line_indices),
+    # )
+    # world_axis.colors = o3d.utility.Vector3dVector(np.asarray(line_endpoints)[1:]) 
+    world_axis_meshes = []
+    scale = 0.01
+    mesh1 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+    mesh1.paint_uniform_color(np.asarray([0,0,1]))
+    world_axis_meshes.append(mesh1)
+    mesh2 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+    mesh2.paint_uniform_color(np.asarray([0,1,0]))
+    r = mesh2.get_rotation_matrix_from_xyz((-np.pi / 2, 0, 0))
+    mesh2.rotate(r, [0,0,0])
+    world_axis_meshes.append(mesh2)
+    mesh3 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+    mesh3.paint_uniform_color(np.asarray([1,0,0]))
+    r = mesh3.get_rotation_matrix_from_xyz((0, np.pi / 2, 0))
+    mesh3.rotate(r, [0,0,0])
+    world_axis_meshes.append(mesh3)
+
+    return world_axis_meshes
 
 config.initialize()
 orignal_mesh, path = config.ml.load_random_mesh()  
@@ -131,6 +164,10 @@ sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
 sphere.paint_uniform_color(np.asarray([0,0,1]))
 config.rd.add_mesh(centre, "Axis")
 config.rd.add_mesh(sphere, "Center")
+meshes = create_world_axis()
+config.rd.add_meshes(meshes, "Custom World Axis")
 
 config.rd.launch_renderer()
+
+
 
