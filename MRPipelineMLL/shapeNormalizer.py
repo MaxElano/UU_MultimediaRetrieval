@@ -87,7 +87,9 @@ class shapeNormalizer():
     
     def save_mesh(self, mesh_values, object_path):
         total_path = "Data\\NormalizedDatabase\\" + object_path
-        if not os.path.exists(total_path):
+        if not os.path.exists("Data\\NormalizedDatabase\\" + object_path.split('\\')[0]):
+            os.makedirs("Data\\NormalizedDatabase\\" + object_path.split('\\')[0])
+        if not os.path.isfile(total_path):
             with open(total_path, "w") as file:
                 file.write("")
         new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
@@ -108,20 +110,27 @@ import config
 from renderer import render_mode
 
 config.initialize()
-mesh_after, path = config.ml.load_random_mesh()  
+orignal_mesh, path = config.ml.load_random_mesh()  
 
 sn = shapeNormalizer()
-sn.run_one_mesh(mesh_after, path[27:])
+sn.run_one_mesh(orignal_mesh, path[27:])
 
 # Render mesh
 config.rd.set_render_mode(render_mode.NORMAL)
 config.rd.show_world_axis(True)
-mesh = config.ml.load_mesh("Data\\NormalizedDatabase\\" + path[27:])
-config.rd.add_mesh(mesh, path[27:])
+
+new_mesh = config.ml.load_mesh("Data\\NormalizedDatabase\\" + path[27:])
+
+orignal_mesh.paint_uniform_color(np.asarray([1,0,0]))
+new_mesh.paint_uniform_color(np.asarray([0,0,1]))
+config.rd.add_mesh(orignal_mesh, 'Original')
+config.rd.add_mesh(new_mesh, 'Normalized')
+
 centre = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
 sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
 sphere.paint_uniform_color(np.asarray([0,0,1]))
 config.rd.add_mesh(centre, "Axis")
 config.rd.add_mesh(sphere, "Center")
+
 config.rd.launch_renderer()
 
