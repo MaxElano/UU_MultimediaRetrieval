@@ -65,6 +65,8 @@ class shapeNormalizer():
         mesh_values.vertices = np.dot(mesh_values.vertices, eigen_vectors)
         mesh_values.face_centres = np.dot(mesh_values.face_centres, eigen_vectors)
         mesh_values.weighted_face_centres = np.dot(mesh_values.weighted_face_centres, eigen_vectors)
+        #Stop updating other mesh values, as we do not need them anymore (save some performance)
+        #From here on other coords are incorrect (except for vertices)
         
     # Use both weighted and unweighted, otherwise the weights might explode the value
     def flip_test(self, mesh_values):                
@@ -76,9 +78,6 @@ class shapeNormalizer():
         mesh_values.vertices[:,1:2] *= np.sign(y)
         mesh_values.vertices[:,2:3] *= np.sign(z)
         
-        #Stop updating other mesh values, as we do not need them anymore (save some performance)
-        #From here on other coords are incorrect (except for vertices)
-    
     def scale_to_unit(self, mesh_values):
         max_bounds = np.max(mesh_values.vertices, axis=0)
         min_bounds = np.min(mesh_values.vertices, axis=0)
@@ -100,7 +99,7 @@ class shapeNormalizer():
         
     def calculate_covariance(coords, weighted_face_centres, axis_idx_1, axis_idx_2, surface_area): 
         weighted_total = np.sum(coords[:, axis_idx_1 : axis_idx_1 + 1] * weighted_face_centres[:, axis_idx_2 : axis_idx_2 + 1]) # Use one weighted to only include face weight once
-        total = weighted_total / np.sum(surface_area)
+        total = weighted_total / surface_area
         variance = total / (coords.shape[0] - 1)
         return variance
     
