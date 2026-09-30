@@ -25,6 +25,12 @@ class shapeAnalyser():
         min_bound = b_box.min_bound
         max_bound = b_box.max_bound
 
+        bounds = {
+            "min": [min_bound[0], min_bound[1], min_bound[2]],
+            "max": [max_bound[0], max_bound[1], max_bound[2]]
+        }
+
+
         # calculate triangle/quad/other count (doesn;t work <3)
         triangle_count = 0
         quad_count = 0
@@ -50,12 +56,7 @@ class shapeAnalyser():
         row = [
             num_vertices,
             num_faces,
-            min_bound[0],
-            min_bound[1],
-            min_bound[2],
-            max_bound[0],
-            max_bound[1],
-            max_bound[2],
+            bounds,
             face_type
         ]
 
@@ -91,6 +92,9 @@ class shapeAnalyser():
         np.savetxt(file_path, rows, delimiter=",", fmt='%s')
 
 sa = shapeAnalyser()
+
+norm_rows = sa.analyse_shapes(folder="Data\\NormalizedDatabase")
+sa.save_analysis(norm_rows, file_name = "normalized_data_info.csv")
 
 rows = sa.analyse_shapes()
 sa.save_analysis(rows)

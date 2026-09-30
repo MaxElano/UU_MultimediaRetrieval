@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from matplotlib import pyplot as plt
 
 '''
@@ -109,7 +110,11 @@ class shapeStatistics():
 
         return high_outliers, low_outliers
 
-    def show_statistics(self):
+    def show_statistics(self,
+                        folder = "Data\\DataAnalysis\\statistics"):
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        
         # Column nums
         filename_col = 0
         class_col = 1
@@ -134,7 +139,7 @@ class shapeStatistics():
         simple_shape = self.get_close_shape(vertices, faces, min(vertices), min(faces))
         complex_shape = self.get_close_shape(vertices, faces, max(vertices), max(faces))
 
-        with open("Data\\DataAnalysis\\statistics.txt", "w") as file:
+        with open(folder + "\\statistics.txt", "w") as file:
             file.write("DATABASE STATISTICS\n")
             file.write(f"Numer of shapes: {len(vertices)}\n")
             file.write(f"Average vertices: {average_vertices}\n")
@@ -157,7 +162,7 @@ class shapeStatistics():
             faces, 
             title="Distribution of Face Counts",
             xlabel = "Number of faces",
-            save_path = "Data\\DataAnalysis\\face_histogram.png",
+            save_path = folder + "\\face_histogram.png",
             average = average_faces,
             median = median_faces,
             )
@@ -166,21 +171,24 @@ class shapeStatistics():
             vertices, 
             title="Distribution of Vertice Counts",
             xlabel = "Number of vertices",
-            save_path = "Data\\DataAnalysis\\vertex_histogram.png",
+            save_path = folder + "\\vertex_histogram.png",
             average = average_vertices,
             median = median_vertices
             )
-        
+
         self.plot_histogram(
             classes, 
             title="Distribution of Shape Classes",
             xlabel = "Shape class",
-            save_path = "Data\\DataAnalysis\\class_histogram.png",
+            save_path = folder + "\\class_histogram.png",
             categorical = True
             )
 
 ss = shapeStatistics()
 
+ss.retrieve_data(file_name="normalized_data_info.csv")
+ss.show_statistics(folder="Data\\DataAnalysis\\NormalizedDataStatistics")
+
+
 ss.retrieve_data()
 ss.show_statistics()
-
