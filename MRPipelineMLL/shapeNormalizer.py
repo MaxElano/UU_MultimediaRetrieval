@@ -122,6 +122,7 @@ class shapeNormalizer():
                 file.truncate()
                 
         new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
+        new_mesh.compute_vertex_normals()
         o3d.io.write_triangle_mesh(total_path, new_mesh)
     
     
