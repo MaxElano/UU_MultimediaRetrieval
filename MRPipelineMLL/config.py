@@ -2,7 +2,7 @@ rd = None
 ml = None
 lg = None
 
-random_mesh_default_folder = "Data\\OriginalShapeDatabase"
+random_mesh_default_folder = "Data\\NormalizedShapeDatabase"
 
 def initialize(skip_renderer = False):
     import renderer

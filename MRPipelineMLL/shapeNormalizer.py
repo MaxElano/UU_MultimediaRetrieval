@@ -3,6 +3,7 @@ import numpy as np
 import os
 import config
 import time
+from resampler import resampler
 
 class normalizerMeshValues():
     def __init__(self, mesh):
@@ -17,7 +18,7 @@ class normalizerMeshValues():
 # The best order is translate -> pca -> re-align -> flip -> scale -> remesh
 class shapeNormalizer():
     def __init__(self):
-        pass
+        self.resampler = resampler()
     
     def normalize_all_meshes(self, path_to_database, new_folder_path, show_update_every = 0):
         #show_update_every = 0 equals no updates
@@ -47,9 +48,13 @@ class shapeNormalizer():
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, mesh, object_path, new_folder_path):
+        #mesh_values = normalizerMeshValues(mesh)
+        #self.translate_to_barycenter(mesh_values) Changed to mesh variant for easy fit with resampler
+        mesh = self.translate_to_barycenter_mesh(mesh)
+        mesh = self.resampler.resample_one_mesh(mesh)
         mesh_values = normalizerMeshValues(mesh)
-        self.translate_to_barycenter(mesh_values)
-        eigen_vectors = self.compute_principal_axes(mesh_values)
+        #eigen_vectors = self.compute_principal_axes(mesh_values)
+        eigen_vectors = self.compute_principal_axes_simpler(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
         self.flip_test(mesh_values)
         self.scale_to_unit(mesh_values)
@@ -64,7 +69,42 @@ class shapeNormalizer():
         mesh_values.vertices -= barycenter
         mesh_values.face_centres -= barycenter
         mesh_values.weighted_face_centres -= (mesh_values.face_areas_reshaped * barycenter)
+
+    def translate_to_barycenter_mesh(self, mesh):
+        face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
+        face_centres = np.average(np.asarray(mesh.vertices)[mesh.triangles], axis=1)
+        face_areas_reshaped = np.reshape(np.repeat(face_areas,3), (face_areas.size, 3))
+        weighted_face_centres = face_areas_reshaped * face_centres
+        numerator = np.sum(weighted_face_centres, axis=0)
         
+        surface_area =  np.sum(face_areas)
+        barycenter = numerator / surface_area
+
+        mesh = mesh.translate(-barycenter)
+        return mesh
+    
+    def compute_principal_axes_simpler(self, mesh_values):
+        cov = np.cov(mesh_values.weighted_face_centres.transpose())
+
+        # Compute eigen vectors and eigen values of covariance matrix
+        # The eigen vectors are the columns of the returned 2d-array
+        eigenvalues, eigenvectors = np.linalg.eig(cov)
+
+        # --This was from example code, feels like it shouldn't be neccessary but just in case 
+        # TODO: test if neccessary
+        # Order the eigenvectors according to the magnitude of their corresponding eigen value
+        # (from largest to smallest)
+        eigencombined = [(eigenvalues[i], eigenvectors[:, i]) for i in range(3)]
+        eigencombined.sort(key=lambda x:x[0], reverse=True)
+        eigenvectors = [item[1] for item in eigencombined]
+        eigenvalues = [item[0] for item in eigencombined]
+
+        # Replace the minor eigen vector with cross product of major and medium (to enforce right-handed reference frame)
+        eigenvectors.pop(2)
+        eigenvectors.append(np.cross(eigenvectors[0], eigenvectors[1]))
+
+        return eigenvectors
+
     # Could maybe be done with get_oriented_bounding_box(), but uncertain about results cuz of other open3d function results/methods
     # Using weighted face coords, we think this will partly resolve the dense point issue
     def compute_principal_axes(self, mesh_values): 
@@ -122,7 +162,8 @@ class shapeNormalizer():
                 file.truncate()
                 
         new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
-        new_mesh.compute_vertex_normals()
+        new_mesh.triangle_normals = o3d.utility.Vector3dVector([])
+        new_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
         o3d.io.write_triangle_mesh(total_path, new_mesh)
     
     
@@ -137,5 +178,5 @@ class shapeNormalizer():
 config.initialize(skip_renderer=True)
 sn = shapeNormalizer()
 original_path = 'Data\\OriginalShapeDataBase'
-new_path = 'Data\\NormalizedDatabase'
+new_path = 'Data\\NormalizedShapeDatabase'
 sn.normalize_all_meshes(original_path, new_path, show_update_every=100)

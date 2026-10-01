@@ -51,7 +51,13 @@ class resampler():
                     o3d.io.write_triangle_mesh(file_path, mesh_after)
                     simplified_count +=1
         print(f"Resampling done. Refined {refined_count} shapes. Simplified {simplified_count} shapes.")    
-        
+
+    def resample_one_mesh(self, mesh, min = 3000, max = 10000):
+        if len(mesh.vertices) <= min:
+            return self.refine(mesh, min)
+        elif len(mesh.vertices) >= max:
+            return self.simplify_by_decimation(mesh, max, max*2)  
+        return mesh
 
     # refines a mesh so that its number of faces is higher than a given number
     def refine(self, mesh, min_vertices):
@@ -98,6 +104,6 @@ class resampler():
         config.rd.launch_renderer()
 
 
-rs = resampler()
-rs.resample_all(3000, 10000)
+#rs = resampler()
+#rs.resample_all(3000, 10000)
 

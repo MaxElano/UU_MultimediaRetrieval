@@ -4,8 +4,8 @@ import numpy as np
 
 config.initialize()
 
-mesh_path_1 = "Data\\OriginalShapeDatabase\\Starship\\m1355.obj"
-mesh_path_2 = "Data\\OriginalShapeDatabase\\Bed\\D00031.obj"
+mesh_path_1 = "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj"
+mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
 
 
 # Load mesh
