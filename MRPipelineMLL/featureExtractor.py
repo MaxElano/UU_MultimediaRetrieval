@@ -45,6 +45,8 @@ class feature_Extractor():
         surf = self.surface_area(mesh)
         cmp = self.compactness(surf, vol)
         sph = self.sphericity(cmp)
+        centr = self.centroid(vertices)
+
 
         # for Assignment:
         # surface area, compactness, 3D rectangularity, diameter, convexity, eccentricity 
@@ -68,8 +70,13 @@ class feature_Extractor():
     def sphericity(self, compactness):
         return 1/compactness
 
-    def centroid(self):
-        return 0
+    def centroid(self, vertices):
+        cnt = 0
+        vertex_sum = np.array([0, 0, 0])
+        for vertex in vertices:
+            vertex_sum = np.add(vertex_sum, vertex)
+            cnt += 1
+        return vertex_sum/cnt
     
     # shape volume divided by OBB volume
     def rectangularity(self):
@@ -88,14 +95,6 @@ class feature_Extractor():
 
 fe = feature_Extractor()
 
-'''
-mesh = o3d.io.read_triangle_mesh("Data\\SmallShapeDatabase\\Cup\\m500.obj")
-vertices = np.asarray(mesh.vertices)
-triangles = np.asarray(mesh.triangles)
-
-print(fe.volume(triangles, vertices))
-print(mesh.get_volume())
-'''
 fe.extract_features_from_database()
 
-#print(np.load("Data\\DataAnalysis\\metaDatabase.npy"))
+print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
