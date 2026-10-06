@@ -19,16 +19,14 @@ class feature_Extractor():
             for file_name in os.listdir(class_folder):
                 if not file_name.lower().endswith(".obj"):
                     continue
-
                 metadata_list.append(np.array([index, file_name, shape_class]))
 
                 file_path = os.path.join(class_folder, file_name)
                 mesh = o3d.io.read_triangle_mesh(file_path)
 
                 feature_list.append(self.extract_features(mesh, index))
-
                 index += 1
-                
+   
         # saves both databases as numpy arrays in a file
         np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
         np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
@@ -38,22 +36,25 @@ class feature_Extractor():
     def extract_features(self, mesh, index):
         vertices = np.asarray(mesh.vertices)
         triangles = np.asarray(mesh.triangles)
-        # DEFINE OTHER MESH DESCRIPTORS HERE
+        convex_hull, _ = mesh.compute_convex_hull()
+        obb = convex_hull.get_axis_aligned_bounding_box() #we can use axis aligned here bc of normalization step
 
-
-        vol = self.volume(triangles, vertices)
+        vol = self.volume(vertices, triangles)
         surf = self.surface_area(mesh)
         cmp = self.compactness(surf, vol)
         sph = self.sphericity(cmp)
         centr = self.centroid(vertices)
-
+        rect = self.rectangularity(vol, obb)
+        dm = self.diameter(convex_hull)
+        conv = self.convexity(vol, convex_hull)
+        ecc = self.eccentricity(obb)
 
         # for Assignment:
         # surface area, compactness, 3D rectangularity, diameter, convexity, eccentricity 
-        return np.array([index, surf, cmp,])
+        return np.array([index, surf, cmp, rect, dm, conv, ecc])
 
    
-    def volume(self, triangles, vertices):
+    def volume(self, vertices, triangles):
         vol = 0
         for t in triangles:
             p1, p2, p3 = t
@@ -79,22 +80,33 @@ class feature_Extractor():
         return vertex_sum/cnt
     
     # shape volume divided by OBB volume
-    def rectangularity(self):
-        return 0
+    def rectangularity(self, vol, obb):
+        return vol/(obb.volume())
 
-    def diameter(self):
-        return 0
+    def diameter(self, convex_hull):
+        longest_dist = 0
+        vertices = convex_hull.vertices
+        for v1 in vertices:
+            for v2 in vertices:
+                dist = np.absolute(np.linalg.norm(v1 - v2))
+                if dist > longest_dist:
+                    longest_dist = dist
+        return longest_dist
 
     # ratio of largest to smallest eigenvalues of covariance matrix
-    def eccentricity(self):
-        return 0
+    def eccentricity(self, obb):
+        eigenvalues = obb.get_extent()
+        return np.max(eigenvalues)/np.min(eigenvalues)
 
     # shape volume divided by convex hull volume
-    def convexity(self):
-        return 0
+    def convexity(self, vol, convex_hull):
+        ch_vol = self.volume(np.asarray(convex_hull.vertices), np.asarray(convex_hull.triangles))
+        return vol/ch_vol
 
 fe = feature_Extractor()
 
 fe.extract_features_from_database()
 
 print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
+
+
