@@ -209,7 +209,7 @@ class preprocessChecker():
         variance = total / (coords.shape[0] - 1)
         return variance
 
-config.initialize(skip_renderer=True)
+# config.initialize(skip_renderer=True)
 
-ppc = preprocessChecker()
-ppc.compute_all_checks(show_update_every=500, processed_data_path="Data\\NormalizedDatabase\\")    
+# ppc = preprocessChecker()
+# ppc.compute_all_checks(show_update_every=500, processed_data_path="Data\\NormalizedDatabase\\")    

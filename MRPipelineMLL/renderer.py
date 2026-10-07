@@ -2,12 +2,14 @@ import open3d as o3d
 import numpy as np
 from enum import Enum
 import config
+import utility as util
 
 class render_mode(Enum):
     #
     EMPTY = 0
     NORMAL = 1
     WIREFRAME_ONLY = 2
+    MIXED = 3
     #
     def __init__(self, value):
         if len(self.__class__):
@@ -25,6 +27,7 @@ class renderer():
     is_animating = False    
     
     visualizer = o3d.visualization.VisualizerWithKeyCallback()
+    mesh_color = [1,1,1]
     
     def __init__(self, width=1280, height=720, background_color = [0.8, 0.8, 0.8]):    
             self.width = width
@@ -44,20 +47,39 @@ class renderer():
         self.visualizer.run()
         self.visualizer.destroy_window()
 
+    def take_screenshot(self, file_path):
+        steps = file_path.split('\\')
+        if (steps[0] == "Data"):
+            steps.pop(0)
+        if (steps[0] == "Screenshots"):
+            steps.pop(0)
+        
+        steps.insert(0, "Screenshots")
+        steps.insert(0, "Data")
+        for i in range(len(steps) - 1):
+            util.create_folder('\\'.join(steps[:i + 1]))
+            
+        steps[-1] = steps[-1].split(".")[0] + ".png"
+        
+        self.visualizer.capture_screen_image(util.get_path(steps),do_render=True)
+    
     def add_mesh(self, 
-                 mesh: o3d.geometry.Geometry, 
-                 label: str,
+                 mesh,
+                 label
     ):
         config.lg.log(label)
         
+        mesh.paint_uniform_color(self.mesh_color)
         self.all_meshes.append(mesh)
-        wf = renderer.generate_wireframe(mesh)
+        wf = renderer.generate_wireframe(mesh, label)
         self.all_wireframes.append(wf)
         match self.current_render_mode:
             case render_mode.NORMAL:
-                self.visualizer.add_geometry(mesh)
+                self.visualizer.add_geometry(mesh, reset_bounding_box=True)
             case render_mode.WIREFRAME_ONLY:
-                self.visualizer.add_geometry(wf)
+                self.visualizer.add_geometry(wf, reset_bounding_box=True)
+            case render_mode.MIXED:
+                self.visualizer.add_geometry(mesh, reset_bounding_box=True)
         
     def add_meshes(self, 
                    meshes: list[o3d.geometry.Geometry], 
@@ -65,15 +87,25 @@ class renderer():
     ):
         np.vectorize(self.add_mesh)(meshes,labels)        
 
+    def remove_all_meshes(self):
+        self.all_meshes = []
+        self.all_wireframes = []
+        self.visualizer.clear_geometries()
+
     # Generate wireframe of SINGLE mesh
-    def generate_wireframe(mesh):
+    def generate_wireframe(mesh, label):
+        if (label == "World Axis"):
+            return mesh
+        
         wireframe = o3d.geometry.LineSet.create_from_triangle_mesh(mesh)
         return wireframe
     
-    def show_world_axis(self, show):
-        self.render_options.show_coordinate_frame = show
+    def add_world_axis(self):
+        self.add_meshes(self.create_custom_world_axis(), ["World Axis","World Axis","World Axis"])
+            
+        #self.render_options.show_coordinate_frame = show
 
-    def create_custom_world_axis() -> o3d.geometry.LineSet:
+    def create_custom_world_axis(self):
         world_axis_meshes = []
         scale = 0.01
         mesh1 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
@@ -94,6 +126,14 @@ class renderer():
 
     # ==== Render Mode Functions ====
     
+    def set_mesh_color(self, color_array):
+        self.mesh_color = color_array
+        for mesh in self.all_meshes:
+            mesh.paint_uniform_color(color_array)
+    
+    def set_background(self, color_array):
+        self.render_options.background_color = color_array 
+    
     # Function when setting render mode in code
     def set_render_mode(self, visual_option):
         config.rd.set_render_mode_button(visualizer=self.visualizer, visual_option=visual_option)
@@ -105,19 +145,22 @@ class renderer():
     def set_render_mode_button(self, visualizer, visual_option):
         self.current_render_mode = visual_option
         view_status = visualizer.get_view_status()
+        visualizer.clear_geometries()
+        visualizer.get_render_option().mesh_show_wireframe = False
         match visual_option:
             case render_mode.EMPTY:
-                visualizer.clear_geometries()
+                pass
             case render_mode.NORMAL:
-                visualizer.clear_geometries()
                 if(len(self.all_meshes) > 0):
                     np.vectorize(visualizer.add_geometry)(self.all_meshes)
             case render_mode.WIREFRAME_ONLY:
-                visualizer.clear_geometries()
                 if(len(self.all_wireframes) > 0):
                     np.vectorize(visualizer.add_geometry)(self.all_wireframes)
+            case render_mode.MIXED:
+                visualizer.get_render_option().mesh_show_wireframe = True
+                if(len(self.all_meshes) > 0):
+                    np.vectorize(visualizer.add_geometry)(self.all_meshes)
         visualizer.set_view_status(view_status)
-
 
 
     # ==== Animation Functions ====
