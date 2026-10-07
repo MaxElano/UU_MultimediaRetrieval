@@ -91,10 +91,10 @@ class shapeAnalyser():
         file_path = "Data\\DataAnalysis\\" + file_name
         np.savetxt(file_path, rows, delimiter=",", fmt='%s')
 
-sa = shapeAnalyser()
+# sa = shapeAnalyser()
 
-norm_rows = sa.analyse_shapes(folder="Data\\NormalizedDatabase")
-sa.save_analysis(norm_rows, file_name = "normalized_data_info.csv")
+# norm_rows = sa.analyse_shapes(folder="Data\\NormalizedDatabase")
+# sa.save_analysis(norm_rows, file_name = "normalized_data_info.csv")
 
-rows = sa.analyse_shapes()
-sa.save_analysis(rows)
+# rows = sa.analyse_shapes()
+# sa.save_analysis(rows)

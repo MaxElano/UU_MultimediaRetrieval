@@ -1,0 +1,60 @@
+from renderer import render_mode
+import config
+
+'''
+Use this class to generate screenshots for the report. 
+Max suggestion is to leave all the previous code in, so we can easily generate enormous new list of images when big changes happen.
+If more renderer settings are needed, at them in renderer class.
+Works with multiple meshes at once, but will be inside each other.
+# Some tips:
+ * The screenshot location can be a folder that is not created yet, it will be created for you! (OH how lucky I am to have such a LUXURIOUS Image Generator)
+ * Screenshot name cannot include "." in final file name, because it will remove the dot and behind to insert ".png", so this is not necessary to do yourself
+
+'''
+
+# Template
+# config.initialize(renderer_height=720, renderer_width=720)
+
+# #necessary meshes
+# mesh_path_1 = "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj"
+# mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
+
+# # Load mesh
+# mesh1 = config.ml.load_mesh(mesh_path_1)
+# mesh2 = config.ml.load_mesh(mesh_path_2)
+
+# # Render mesh
+# config.rd.set_render_mode(render_mode.MIXED)
+# config.rd.set_background([1,1,1])
+# config.rd.set_mesh_color([1,0,0])
+# config.rd.add_mesh(mesh1, mesh_path_1)
+# config.rd.add_mesh(mesh2, mesh_path_2)
+# config.rd.add_world_axis()
+# config.rd.take_screenshot("I\\Want\\Way\\Too\\Many\\Files\\test.png")
+# #config.rd.launch_renderer()
+
+
+
+# Initialize image settings (the same for all images)
+config.initialize(renderer_height=720, renderer_width=720)
+
+config.rd.set_render_mode(render_mode.MIXED)
+config.rd.set_background([1,1,1])
+config.rd.set_mesh_color([1,0,0])
+
+
+# <-- Example image -->
+# Necessary meshes
+mesh_path_1 = "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj"
+mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
+# Load mesh
+mesh1 = config.ml.load_mesh(mesh_path_1)
+mesh2 = config.ml.load_mesh(mesh_path_2)
+# Render mesh
+config.rd.add_mesh(mesh1, mesh_path_1)
+config.rd.add_mesh(mesh2, mesh_path_2)
+config.rd.add_world_axis()
+config.rd.take_screenshot("ExampleTestScreenshot") 
+# Clear renderer
+config.rd.remove_all_meshes()
+
