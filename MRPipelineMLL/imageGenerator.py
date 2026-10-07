@@ -43,6 +43,7 @@ config.rd.set_background([1,1,1])
 config.rd.set_mesh_color([1,0,0])
 
 
+
 # <-- Example image -->
 # Necessary meshes
 mesh_path_1 = "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj"
@@ -58,3 +59,15 @@ config.rd.take_screenshot("ExampleTestScreenshot")
 # Clear renderer
 config.rd.remove_all_meshes()
 
+
+# <-- Example image 2 -->
+# Necessary meshes
+mesh_path_1 = "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj"
+# Load mesh
+mesh1 = config.ml.load_mesh(mesh_path_1)
+# Render mesh
+config.rd.add_mesh(mesh1, mesh_path_1)
+config.rd.add_world_axis()
+config.rd.take_screenshot("ExampleFolder\\ExampleTestScreenshot_2.jpg") 
+# Clear renderer
+config.rd.remove_all_meshes()
