@@ -37,6 +37,7 @@ class renderer():
             
             self.render_options = self.visualizer.get_render_option()
             self.render_options.background_color = background_color 
+            self.render_options.mesh_show_back_face = True
 
             self.visualizer.register_key_callback(ord("A"), renderer.show_animation)
             self.visualizer.register_key_callback(ord("M"), renderer.next_render_mode)
