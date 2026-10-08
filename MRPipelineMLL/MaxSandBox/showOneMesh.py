@@ -20,8 +20,8 @@ o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enj
 
 
 # Actual code
-#mesh_path_1 = "Data\\NormalizedShapeDatabase\\Cellphone\\D00542.npz"
-mesh_path_1 = "Data\\OriginalShapeDatabase\\Cellphone\\D00542.obj"
+mesh_path_1 = "Data\\NormalizedShapeDatabase\\Cellphone\\D00542.npz"
+#mesh_path_1 = "Data\\OriginalShapeDatabase\\Cellphone\\D00542.obj"
 
 # Load mesh
 mesh1 = config.ml.load_mesh(mesh_path_1)
