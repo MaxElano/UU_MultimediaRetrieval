@@ -1,6 +1,7 @@
 import open3d as o3d
 import numpy as np
 import os
+import config
 
 '''
 A tool that checks all shapes in a database and infers their:
@@ -74,11 +75,11 @@ class shapeAnalyser():
 
             # add a row for current object, its class, and the analysis results
             for file_name in os.listdir(class_folder):
-                if not file_name.lower().endswith(".obj"):
+                if not file_name.lower().endswith(".obj") and file_name.lower().endswith(".npz"):
                     continue
 
                 file_path = os.path.join(class_folder, file_name)
-                mesh = o3d.io.read_triangle_mesh(file_path)
+                mesh = config.ml.load_mesh(file_path)
                 row = self.analyse_shape(mesh, file_path)
                 rows.append([file_name, shape_class] + row)
 
