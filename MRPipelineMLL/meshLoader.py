@@ -3,6 +3,7 @@ import numpy as np
 import config
 import os
 import random
+import utility as util
 
 '''
     The meshLoader will convert all path strings to actual meshes and return these
@@ -23,18 +24,17 @@ class meshLoader():
             return self.load_numpy(mesh_path)
         
         return self.load_open3d(mesh_path)
-
-
+    
     def load_open3d(self, mesh_path):
         mesh = o3d.io.read_triangle_mesh(mesh_path)
-        #mesh.compute_vertex_normals()
+        mesh.compute_vertex_normals()
         mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
         return mesh
 
     def load_numpy(self, mesh_path):
         vertices = []
         triangles = []
-        file = np.load(mesh_path)
+        file = util.load_numpy_file(mesh_path)
         vertices = file["vertices"]
         triangles = file["triangles"]
         new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(triangles))
@@ -42,16 +42,11 @@ class meshLoader():
         new_mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
         return new_mesh
 
-    
     def load_random_mesh(self) -> o3d.geometry.Geometry:
-        all_files = []
-        
-        for root, dirs, files in os.walk(config.random_mesh_default_folder):
-            for file in files:
-                if file.endswith(".obj"):
-                    all_files.append(os.path.join(root, file))
-        
-        files = [f for f in all_files if f.endswith(".obj")]
+        files = util.get_all_files(config.random_mesh_default_folder)
         random_file=random.choice(files)
-        mesh = config.ml.load_mesh(random_file)
-        return mesh, random_file
+        mesh = config.ml.load_mesh(util.get_path(random_file))
+        return mesh, util.get_path(random_file)
+
+    def save_mesh_numpy(self, total_path, mesh_vertices, mesh_triangles):
+        util.save_numpy_file(total_path, vertices=mesh_vertices, triangles=mesh_triangles)

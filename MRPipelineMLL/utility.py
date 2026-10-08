@@ -7,12 +7,12 @@ File with functions that are used very often,
 preferably use these above implementing them every time
 '''
 
-def get_all_obj_files(database_path):
+def get_all_files(database_path):
     # Returns list of all objects with (Path to database, class name, file name)
     all_files = []
     for root, dirs, files in os.walk(database_path):
         for file in files:
-            if file.endswith(".obj") or file.endswith(".npy") or file.endswith(".npz"):
+            if file.endswith(".obj") or file.endswith(".npz"):
                 class_name = root.split('\\')[-1]
                 all_files.append((database_path, class_name, file))
     return np.asarray(all_files)
@@ -35,7 +35,18 @@ def empty_file(file_path):
         with open(file_path, "w") as file:
             file.seek(0)
             file.truncate()
-            
+
+def save_numpy_file(total_path, **kwargs):
+    deepest_folder = '\\'.join(total_path.split('\\')[:-1])
+    total_path = total_path.removesuffix(".*")
+    create_folder(deepest_folder)
+    np.savez(total_path, **kwargs)
+
+# Acces specific arrays using returned file
+# file["example_array_name"]
+def load_numpy_file(total_path):
+    return np.load(total_path)
+        
 class progress_printer():
     def __init__(self, total, update_every, custom_text = ''):
         self.total = total

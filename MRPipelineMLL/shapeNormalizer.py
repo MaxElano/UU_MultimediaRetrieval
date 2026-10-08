@@ -42,16 +42,13 @@ class shapeNormalizer():
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
-        #mesh_values = normalizerMeshValues(mesh)
-        #self.translate_to_barycenter(mesh_values) Changed to mesh variant for easy fit with resampler
         mesh = self.translate_to_barycenter_mesh(mesh)
         mesh = self.resampler.resample_one_mesh(mesh)
         mesh_values = normalizerMeshValues(mesh)
-        #eigen_vectors = self.compute_principal_axes(mesh_values)
         eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
         self.flip_test(mesh_values)
-        #self.scale_to_unit(mesh_values)
+        self.scale_to_unit(mesh_values)
         self.save_mesh(mesh_values, object_entry, path_to_new_database)
 
     def translate_to_barycenter_mesh(self, mesh):
@@ -121,16 +118,7 @@ class shapeNormalizer():
     
     def save_mesh(self, mesh_values, object_entry, path_to_new_database):
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
-        class_path = path_to_new_database + '\\' + object_entry[1]
-        util.create_folder(class_path)
-        total_path = total_path.removesuffix(".obj")
-        util.empty_file(total_path)
-        np.savez(total_path, vertices=mesh_values.vertices, triangles=mesh_values.triangles)
-        # new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
-        # new_mesh.triangle_normals = o3d.utility.Vector3dVector([])
-        # new_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
-        # o3d.io.write_triangle_mesh(total_path, new_mesh)
-    
+        config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
     
     # ==== UTIL ====
         
