@@ -27,7 +27,7 @@ class meshLoader():
 
     def load_open3d(self, mesh_path):
         mesh = o3d.io.read_triangle_mesh(mesh_path)
-        mesh.compute_vertex_normals()
+        #mesh.compute_vertex_normals()
         mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
         return mesh
 

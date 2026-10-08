@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, 'D:\\UU\\Master\\Multimedia Retrieval\\Assignment\\Multimedia-Retrieval\\MRPipelineMLL') # location of src 
+personal_path = "C:\\UU\\Master\\Multimedia Retrieval\\Assignment"
+sys.path.insert(0, personal_path + "\\MRPipelineMLL") # location of src 
 
 from shapeNormalizer import shapeNormalizer
 from preprocessChecker import preprocessChecker
@@ -24,10 +25,15 @@ new_path = 'Data\\NormalizedShapeDatabase'
 original_files = util.get_all_obj_files(original_path)
 new_files = util.get_all_obj_files(new_path)
 
-original_mesh = config.ml.load_mesh(util.get_path(original_files[0]))
-new_mesh = config.ml.load_mesh(util.get_path(new_files[0]))
+specific_object_original = 'Quadruped\\m94.obj'
+specific_object_new = 'Quadruped\\m94.npz'
+
+original_mesh = config.ml.load_mesh(util.get_path([original_path, specific_object_original]))
+new_mesh = config.ml.load_mesh(util.get_path([new_path, specific_object_new]))
 
 print(np.asarray(original_mesh.vertices)[0])
+print(np.asarray(original_mesh.vertices)[1])
+print(np.asarray(original_mesh.vertices).shape[0])
 print(np.asarray(new_mesh.vertices)[0])
 
 # Finish
