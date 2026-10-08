@@ -1,13 +1,15 @@
 import numpy as np
 import os
 import open3d as o3d
+import config
+from renderer import render_mode
 
 class feature_Extractor():
     def __init__(self):
         pass
 
     # extracts from a given database and stores them in two numpy arrays
-    def extract_features_from_database(self, directory ="Data\\SmallShapeDatabase"):
+    def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
         index = 0
         feature_list = []
         metadata_list = []
@@ -42,12 +44,12 @@ class feature_Extractor():
         vol = self.volume(vertices, triangles)
         surf = self.surface_area(mesh)
         cmp = self.compactness(surf, vol)
-        sph = self.sphericity(cmp)
-        centr = self.centroid(vertices)
         rect = self.rectangularity(vol, obb)
         dm = self.diameter(convex_hull)
         conv = self.convexity(vol, convex_hull)
         ecc = self.eccentricity(obb)
+        #sph = self.sphericity(cmp)
+        #centr = self.centroid(vertices)        
 
         # for Assignment:
         # surface area, compactness, 3D rectangularity, diameter, convexity, eccentricity 
@@ -103,10 +105,26 @@ class feature_Extractor():
         ch_vol = self.volume(np.asarray(convex_hull.vertices), np.asarray(convex_hull.triangles))
         return vol/ch_vol
 
+    # function to showcase convex hull
+    def render_convex_hull(self, meshpath):
+        config.initialize()
+        mesh = config.ml.load_mesh(meshpath)
+        convex_hull, _ = mesh.compute_convex_hull()
+        print(mesh)
+        print(convex_hull)
+
+        # Render mesh
+        config.rd.set_render_mode(render_mode.NORMAL)
+        #config.rd.show_world_axis(True)
+        config.rd.add_mesh(mesh, meshpath)
+        config.rd.add_mesh(convex_hull.translate((2, 0, 0)), meshpath)
+        config.rd.launch_renderer()
+
 fe = feature_Extractor()
 
 fe.extract_features_from_database()
-
 print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
+
+
 
 
