@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, 'D:\\UU\\Master\\Multimedia Retrieval\\Assignment\\Multimedia-Retrieval\\MRPipelineMLL') # location of src 
+personal_path = "C:\\UU\\Master\\Multimedia Retrieval\\Assignment"
+sys.path.insert(0, personal_path + "\\MRPipelineMLL") # location of src 
 
 from shapeNormalizer import shapeNormalizer
 from preprocessChecker import preprocessChecker
@@ -15,7 +16,7 @@ o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enj
 sn = shapeNormalizer()
 original_path = 'Data\\OriginalShapeDataBase'
 new_path = 'Data\\NormalizedShapeDatabase'
-#sn.normalize_all_meshes(original_path, new_path, show_update_every=100)
+sn.normalize_all_meshes(original_path, new_path, show_update_every=100)
 
 ppc = preprocessChecker()
 ppc.compute_all_checks(show_update_every=100, processed_data_path=new_path)    

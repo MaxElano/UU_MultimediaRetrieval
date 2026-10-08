@@ -51,7 +51,7 @@ class shapeNormalizer():
         eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
         self.flip_test(mesh_values)
-        self.scale_to_unit(mesh_values)
+        #self.scale_to_unit(mesh_values)
         self.save_mesh(mesh_values, object_entry, path_to_new_database)
 
     def translate_to_barycenter_mesh(self, mesh):
