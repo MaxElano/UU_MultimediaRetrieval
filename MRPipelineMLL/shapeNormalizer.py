@@ -123,13 +123,13 @@ class shapeNormalizer():
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
         class_path = path_to_new_database + '\\' + object_entry[1]
         util.create_folder(class_path)
+        total_path = total_path.removesuffix(".obj")
         util.empty_file(total_path)
-
-                
-        new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
-        new_mesh.triangle_normals = o3d.utility.Vector3dVector([])
-        new_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
-        o3d.io.write_triangle_mesh(total_path, new_mesh)
+        np.savez(total_path, vertices=mesh_values.vertices, triangles=mesh_values.triangles)
+        # new_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh_values.vertices), o3d.utility.Vector3iVector(mesh_values.triangles))
+        # new_mesh.triangle_normals = o3d.utility.Vector3dVector([])
+        # new_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
+        # o3d.io.write_triangle_mesh(total_path, new_mesh)
     
     
     # ==== UTIL ====

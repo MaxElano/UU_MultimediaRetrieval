@@ -4,6 +4,7 @@ import os
 import config
 import time
 from matplotlib import pyplot as plt
+import utility as util
 
 #gejoinked
 class normalizerMeshValues():
@@ -21,20 +22,15 @@ class preprocessChecker():
         pass
     
     def compute_all_checks(self, 
-                           processed_data_path = "Data\\NormalizedDatabase\\",
+                           processed_data_path = "Data\\NormalizedShapeDatabase",
                            output_folder = "Data\\DataAnalysis\\NormalizedDataStatistics", 
                            show_update_every = 0):
         #show_update_every = 0 equals no updates
         config.lg.log("Starting normalization check")
         start = time.time()
         
-        all_files = []
-        for root, dirs, files in os.walk(processed_data_path):
-            for file in files:
-                if file.endswith(".obj"):
-                    all_files.append(os.path.join(root[24:], file))
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
+        all_files = util.get_all_obj_files(processed_data_path)
+        util.create_folder(output_folder)
         
         number_of_files = len(all_files)
         config.lg.log(f"{number_of_files} objects found")
@@ -44,7 +40,7 @@ class preprocessChecker():
         scale_data = []
         remesh_data = []
         for i in range(number_of_files):
-            mesh = config.ml.load_mesh(processed_data_path + '\\' + all_files[i])
+            mesh = config.ml.load_mesh(util.get_path(all_files[i]))
             bc_error, pca_error, scale_error, remesh_error = self.check_mesh(mesh)
             bc_data.append(bc_error)
             pa_data.append(pca_error)
@@ -70,16 +66,16 @@ class preprocessChecker():
     
         with open(output_folder + "\\error_statistics.txt", "w") as file:
                     file.write("DATABASE ERROR STATISTICS\n")
-                    file.write((f"\nMaximum barycenter error: {np.max(bc_data)}" f"(shape: {all_files[np.argmax(bc_data)]})"))
+                    file.write((f"\nMaximum barycenter error: {np.max(bc_data)}" f"(shape: {util.get_path(all_files[np.argmax(bc_data)])})"))
                     file.write(f"\n Average Barycentric error: {np.average(bc_data)}")
                     file.write(f"\n Median Barycentric error: {np.median(bc_data)}")
-                    file.write((f"\n Maximum principal axes error: {np.max(pa_data)}" f"(shape: {all_files[np.argmax(pa_data)]})"))
+                    file.write((f"\n Maximum principal axes error: {np.max(pa_data)}" f"(shape: {util.get_path(all_files[np.argmax(pa_data)])})"))
                     file.write(f"\n Average principal axes error: {np.average(pa_data)}")
                     file.write(f"\n Median principal axes error: {np.median(pa_data)}")
-                    file.write((f"\n Maximum scale error: {np.max(scale_data)}" f"(shape: {all_files[np.argmax(scale_data)]})"))
+                    file.write((f"\n Maximum scale error: {np.max(scale_data)}" f"(shape: {util.get_path(all_files[np.argmax(scale_data)])})"))
                     file.write(f"\n Average scale error: {np.average(scale_data)}")
                     file.write(f"\n Median scale error: {np.median(scale_data)}")
-                    file.write((f"\n Maximum vertex count error: {np.max(remesh_data)}" f"(shape: {all_files[np.argmax(remesh_data)]})"))
+                    file.write((f"\n Maximum vertex count error: {np.max(remesh_data)}" f"(shape: {util.get_path(all_files[np.argmax(remesh_data)])})"))
                     file.write(f"\n Average vertex count error: {np.average(remesh_data)}")
                     file.write(f"\n Median vertex count error: {np.median(remesh_data)}")
 

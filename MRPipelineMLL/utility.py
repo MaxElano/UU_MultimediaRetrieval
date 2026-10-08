@@ -12,14 +12,17 @@ def get_all_obj_files(database_path):
     all_files = []
     for root, dirs, files in os.walk(database_path):
         for file in files:
-            if file.endswith(".obj"):
+            if file.endswith(".obj") or file.endswith(".npy") or file.endswith(".npz"):
                 class_name = root.split('\\')[-1]
                 all_files.append((database_path, class_name, file))
     return np.asarray(all_files)
 
 def create_folder(folder_path):
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+    steps = folder_path.split('\\')
+    for i in range(len(steps)):
+        path = '\\'.join(steps[:i + 1])
+        if not os.path.exists(path):
+            os.makedirs(path)
 
 def get_path(obj_entry):
     return '\\'.join(obj_entry)
