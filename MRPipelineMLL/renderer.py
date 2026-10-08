@@ -56,8 +56,7 @@ class renderer():
         
         steps.insert(0, "Screenshots")
         steps.insert(0, "Data")
-        for i in range(len(steps) - 1):
-            util.create_folder('\\'.join(steps[:i + 1]))
+        util.create_folder(steps)
             
         steps[-1] = steps[-1].split(".")[0] + ".png"
         
