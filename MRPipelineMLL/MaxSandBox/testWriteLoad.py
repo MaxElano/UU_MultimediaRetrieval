@@ -27,17 +27,27 @@ new_path = 'Data\\TestDatabase'
 
 specific_object_original = 'Quadruped\\m94.obj'
 specific_object_new = 'Quadruped\\m94.obj'
+specific_object_new2 = 'Quadruped\\m9411111.obj'
 
 original_mesh = config.ml.load_mesh(util.get_path([original_path, specific_object_original]))
 temp_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(original_mesh.vertices), o3d.utility.Vector3iVector(original_mesh.triangles))
 temp_mesh.triangle_normals = o3d.utility.Vector3dVector([])
-temp_mesh.vertex_normals = original_mesh.vertex_normals
-#temp_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
+#temp_mesh.vertex_normals = original_mesh.vertex_normals
+temp_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
 util.create_folder(new_path + "\\Quadruped")
 util.empty_file(util.get_path([new_path, specific_object_new]))
 o3d.io.write_triangle_mesh(util.get_path([new_path, specific_object_new]), temp_mesh)
 
-new_mesh = config.ml.load_mesh(util.get_path([new_path, specific_object_new]))
+seth = config.ml.load_mesh(util.get_path([new_path, specific_object_new]))
+seth_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(seth.vertices), o3d.utility.Vector3iVector(seth.triangles))
+seth_mesh.triangle_normals = o3d.utility.Vector3dVector([])
+#temp_mesh.vertex_normals = original_mesh.vertex_normals
+seth_mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
+util.create_folder(new_path + "\\Quadruped")
+util.empty_file(util.get_path([new_path, specific_object_new2]))
+o3d.io.write_triangle_mesh(util.get_path([new_path, specific_object_new2]), seth_mesh)
+
+new_mesh = config.ml.load_mesh(util.get_path([new_path, specific_object_new2]))
 
 print(np.asarray(original_mesh.vertices)[0])
 print(np.asarray(original_mesh.vertices)[1])
