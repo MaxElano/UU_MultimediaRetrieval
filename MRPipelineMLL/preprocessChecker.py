@@ -29,7 +29,7 @@ class preprocessChecker():
         config.lg.log("Starting normalization check")
         start = time.time()
         
-        all_files = util.get_all_obj_files(processed_data_path)
+        all_files = util.get_all_files(processed_data_path)
         util.create_folder(output_folder)
         
         number_of_files = len(all_files)

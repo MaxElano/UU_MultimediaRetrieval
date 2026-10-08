@@ -1,6 +1,6 @@
 import sys
-personal_path = "C:\\UU\\Master\\Multimedia Retrieval\\Assignment"
-sys.path.insert(0, personal_path + "\\MRPipelineMLL") # location of src 
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
 from shapeNormalizer import shapeNormalizer
 from preprocessChecker import preprocessChecker

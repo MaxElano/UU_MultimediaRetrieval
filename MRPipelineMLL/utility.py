@@ -38,7 +38,7 @@ def empty_file(file_path):
 
 def save_numpy_file(total_path, **kwargs):
     deepest_folder = '\\'.join(total_path.split('\\')[:-1])
-    total_path = total_path.removesuffix(".*")
+    total_path = '.'.join(total_path.split('.')[:-1])
     create_folder(deepest_folder)
     np.savez(total_path, **kwargs)
 

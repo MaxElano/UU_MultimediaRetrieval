@@ -26,7 +26,7 @@ class shapeNormalizer():
         config.lg.log(f"Starting normalization process at location {path_to_database}")
         start = time.time()
         
-        all_files = util.get_all_obj_files(path_to_database)
+        all_files = util.get_all_files(path_to_database)
         util.create_folder(path_to_new_database)
         number_of_files = len(all_files)
         config.lg.log(f"{number_of_files} objects found")

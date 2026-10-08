@@ -1,6 +1,6 @@
 import sys
-personal_path = "C:\\UU\\Master\\Multimedia Retrieval\\Assignment"
-sys.path.insert(0, personal_path + "\\MRPipelineMLL") # location of src 
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
 from shapeNormalizer import shapeNormalizer
 from preprocessChecker import preprocessChecker
@@ -22,8 +22,8 @@ o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enj
 original_path = 'Data\\OriginalShapeDataBase'
 new_path = 'Data\\TestDatabase'
 
-# original_files = util.get_all_obj_files(original_path)
-# new_files = util.get_all_obj_files(new_path)
+# original_files = util.get_all_files(original_path)
+# new_files = util.get_all_files(new_path)
 
 specific_object_original = 'Quadruped\\m94.obj'
 specific_object_new = 'Quadruped\\m94'

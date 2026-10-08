@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 import sys
-sys.path.insert(0, 'D:\\UU\\Master\\Multimedia Retrieval\\Assignment\\Multimedia-Retrieval\\MRPipelineMLL') # location of src 
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 import config
  
 def getAllFiles(databse_location):
