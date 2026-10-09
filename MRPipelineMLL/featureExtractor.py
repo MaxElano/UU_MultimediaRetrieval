@@ -143,6 +143,8 @@ fe = feature_Extractor()
 
 #fe.extract_features_from_database()
 #print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
+#fe.extract_features_from_database()
+#print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
 
 #_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
 #print(row)
