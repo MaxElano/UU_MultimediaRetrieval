@@ -120,11 +120,34 @@ class feature_Extractor():
         config.rd.add_mesh(convex_hull.translate((2, 0, 0)), meshpath)
         config.rd.launch_renderer()
 
+    # returns all features for a given mesh, if available in database with correct index, else newly calculated with index -1
+    def retrieve_features(self, meshpath, filename):
+        config.initialize()
+        mesh = config.ml.load_mesh(meshpath)
+        features = np.load("Data\\DataAnalysis\\featureDatabase.npy")
+        meta_data = np.load("Data\\DataAnalysis\\metaDatabase.npy")
+
+        mesh_index = self.get_mesh_index(filename, meta_data)
+        if mesh_index < 0:
+            features = self.extract_features(mesh, -1)
+        else:
+            features = features[mesh_index]
+
+        return mesh, features
+
+    def get_mesh_index(self, filename, meta_data):
+        for row in meta_data:
+            if row[1] == filename:
+                return int(row[0])
+        return -1
+        
+
 fe = feature_Extractor()
 
-fe.extract_features_from_database()
-print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
+#fe.extract_features_from_database()
+#print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
 
-
+_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
+print(row)
 
 
