@@ -3,31 +3,27 @@ import os
 import open3d as o3d
 import config
 from renderer import render_mode
+import utility as util
 
 class feature_Extractor():
     def __init__(self):
-        pass
+        config.initialize()
 
     # extracts from a given database and stores them in two numpy arrays
-    def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
+    def extract_features_from_database(self, directory ="Data\\SmallShapeDatabase"):
         index = 0
         feature_list = []
         metadata_list = []
-        for shape_class in os.listdir(directory):
-            class_folder = os.path.join(directory, shape_class)
-            if not os.path.isdir(class_folder):
-                continue
 
-            for file_name in os.listdir(class_folder):
-                if not file_name.lower().endswith(".obj"):
-                    continue
-                metadata_list.append(np.array([index, file_name, shape_class]))
+        all_files = util.get_all_obj_files(directory)
 
-                file_path = os.path.join(class_folder, file_name)
-                mesh = o3d.io.read_triangle_mesh(file_path)
+        for file in all_files:
+            _, shape_class, file_name = file
+            mesh = config.ml.load_mesh(util.get_path(file))
 
-                feature_list.append(self.extract_features(mesh, index))
-                index += 1
+            metadata_list.append(np.array([index, file_name, shape_class]))
+            feature_list.append(self.extract_features(mesh, index))
+            index += 1
    
         # saves both databases as numpy arrays in a file
         np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
@@ -138,6 +134,7 @@ class feature_Extractor():
     def get_mesh_index(self, filename, meta_data):
         for row in meta_data:
             if row[1] == filename:
+                print(row)
                 return int(row[0])
         return -1
         
@@ -147,7 +144,8 @@ fe = feature_Extractor()
 #fe.extract_features_from_database()
 #print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
 
-_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
-print(row)
-
+#_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
+#print(row)
+#fe.extract_features_from_database()
+print(fe.retrieve_features("Data\\SmallShapeDatabase\\Mug\\D00172.obj", 'D00172.obj'))
 
