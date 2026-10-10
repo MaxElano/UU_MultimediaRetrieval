@@ -8,7 +8,7 @@ mesh_path_1 = "Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz"
 #mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
 
 # Load mesh
-mesh1 = config.ml.load_mesh(mesh_path_1)
+mesh1 = config.ml.load_mesh(mesh_path_1, open3d=True)
 #mesh2 = config.ml.load_mesh(mesh_path_2)
 
 # Render mesh
