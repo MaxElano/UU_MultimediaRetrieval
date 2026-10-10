@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import shapeNormalizer
+from shapeNormalizer import shapeNormalizerPyMeshLab
 import config
 import open3d as o3d
 import time
@@ -12,14 +12,14 @@ config.initialize(skip_renderer=True)
 config.lg.set_to_print()
 config.lg.log("Starting one normalization")
 o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enjoying warnings
-sn = shapeNormalizer()
+sn = shapeNormalizerPyMeshLab()
 
 
 original_mesh_path = "Data\\OriginalShapeDatabase\\Cellphone\\D00542.obj"
 new_path = 'Data\\NormalizedShapeDatabase'
 
 
-original_mesh = config.ml.load_mesh(original_mesh_path)
+original_mesh = config.ml.load_mesh(original_mesh_path, pyMeshLab=True)
 split = original_mesh_path.split("\\")
 database = '\\'.join(split[:-2])
 clas = split[-2]

@@ -18,7 +18,7 @@ class normalizerMeshValues():
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
 # The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
-class shapeNormalizer():
+class shapeNormalizerOpen3D():
     def __init__(self):
         self.resampler = resampler()
     
@@ -144,7 +144,7 @@ class shapeNormalizer():
         config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
 
 # The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
-class shapeNormalizerMeshLab():
+class shapeNormalizerPyMeshLab():
     def __init__(self):
         self.resampler = resampler()
     
@@ -168,11 +168,11 @@ class shapeNormalizerMeshLab():
         duration = end-start
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
-    def run_one_mesh(self, mesh, object_entry, path_to_new_database):
+    def run_one_mesh(self, meshset, object_entry, path_to_new_database):
         #mesh = self.general_cleanup(mesh)
         #mesh = self.fill_holes(mesh)
         #self.orient_triangles(mesh, object_entry)
-        #mesh = self.translate_to_barycenter_mesh(mesh)
+        self.translate_to_barycenter_mesh(meshset)
         #mesh = self.resampler.resample_one_mesh(mesh)
         #mesh_values = normalizerMeshValues(mesh)
         #eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
@@ -201,18 +201,10 @@ class shapeNormalizerMeshLab():
     #     if (not orientable):
     #         config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
 
-    def translate_to_barycenter_mesh(self, mesh):
-        face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
-        face_centres = np.average(np.asarray(mesh.vertices)[mesh.triangles], axis=1)
-        face_areas_reshaped = np.reshape(np.repeat(face_areas,3), (face_areas.size, 3))
-        weighted_face_centres = face_areas_reshaped * face_centres
-        numerator = np.sum(weighted_face_centres, axis=0)
-        
-        surface_area =  np.sum(face_areas)
-        barycenter = numerator / surface_area
-
-        mesh = mesh.translate(-barycenter)
-        return mesh
+    def translate_to_barycenter_mesh(self, meshset):
+        measures = meshset.get_geometric_measures()
+        barycenter = measures['shell_barycenter']
+        meshset.compute_matrix_from_translation(traslmethod='XYZ translation', axisx=barycenter[0], axisy=barycenter[1], axisz=barycenter[2])
     
     def compute_principal_axes_simpler(self, mesh_values):
         # Code from example on Teams
@@ -235,7 +227,7 @@ class shapeNormalizerMeshLab():
 
         return eigenvectors, eigenvalues
     
-    def align_to_world_frame(self, mesh_values, eigen_vectors):
+    def align_to_world_frame(self, meshset, eigen_vectors):
         # https://en.wikipedia.org/wiki/Dot_product
         
         mesh_values.vertices = np.dot(mesh_values.vertices, eigen_vectors)

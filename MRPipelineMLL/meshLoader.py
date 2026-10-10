@@ -40,6 +40,8 @@ class meshLoader():
         meshset = pml.MeshSet()
         meshset.load_new_mesh(mesh_path)
         meshset.compute_scalar_by_aspect_ratio_per_face(metric='Area')
+        meshset.compute_new_custom_point_attribute_per_face(name='center', x_expr='(x0+x1+x2)/3', y_expr='(y0+y1+y2)/3', z_expr='(z0+z1+z2)/3')
+        meshset.compute_new_custom_point_attribute_per_face(name='weighted_center', x_expr='center_x*fq', y_expr='center_y*fq', z_expr='center_z*fq')        
         return meshset
 
     def load_numpy(self, mesh_path):
