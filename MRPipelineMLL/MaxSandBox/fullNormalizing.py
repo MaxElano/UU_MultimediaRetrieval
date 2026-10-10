@@ -10,7 +10,7 @@ import time
 
 start = time.time()
 config.initialize(skip_renderer=True)
-config.lg.set_to_print()
+config.lg.set_to_write()
 config.lg.log("Starting entire normalization pipeline + testing")
 o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enjoying warnings
 sn = shapeNormalizer()

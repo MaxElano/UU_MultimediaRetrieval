@@ -16,7 +16,7 @@ class normalizerMeshValues():
         self.face_areas_reshaped = np.reshape(np.repeat(self.face_areas,3), (self.face_areas.size, 3))
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
-# The best order is translate -> pca -> re-align -> flip -> scale -> remesh
+# The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
 class shapeNormalizer():
     def __init__(self):
         self.resampler = resampler()
@@ -42,6 +42,9 @@ class shapeNormalizer():
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
+        mesh = self.general_cleanup(mesh)
+        mesh = self.fill_holes(mesh)
+        self.orient_triangles(mesh, object_entry)
         mesh = self.translate_to_barycenter_mesh(mesh)
         mesh = self.resampler.resample_one_mesh(mesh)
         mesh_values = normalizerMeshValues(mesh)
@@ -50,6 +53,25 @@ class shapeNormalizer():
         self.flip_test(mesh_values)
         self.scale_to_unit(mesh_values)
         self.save_mesh(mesh_values, object_entry, path_to_new_database)
+
+    def general_cleanup(self, mesh):
+        mesh = mesh.remove_duplicated_triangles()
+        mesh = mesh.remove_degenerate_triangles()
+        mesh = mesh.remove_duplicated_vertices()
+        mesh = mesh.remove_non_manifold_edges()
+        mesh = mesh.remove_unreferenced_vertices()
+        return mesh
+
+    def fill_holes(self, mesh):
+        mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh).fill_holes().to_legacy()
+        mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
+        mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
+        return mesh
+
+    def orient_triangles(self, mesh, path):
+        orientable = mesh.orient_triangles()
+        if (not orientable):
+            config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
 
     def translate_to_barycenter_mesh(self, mesh):
         face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2

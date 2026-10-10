@@ -25,6 +25,7 @@ class logger:
     
     def set_to_write(self):
         self.mode = log_mode.WRITE
+        self.write("\n ==== STARTING NEW WRITING SESSION ==== \n")
     
     def log(self, text: str):
         now = datetime.datetime.now()
@@ -42,7 +43,8 @@ class logger:
         print(text)
     
     def write(self, text: str):
-        pass
+        with open("Log", "a") as file:
+            file.write(text + '\n')
     
     def custom_print(self, text: str):
         now = datetime.datetime.now()
