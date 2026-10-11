@@ -12,7 +12,7 @@ class feature_Extractor():
         config.initialize()
 
     # extracts from a given database and stores them in two numpy arrays
-    def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
+    def extract_features_from_database(self, directory ="Data\\SmallShapeDatabase"):
         index = 0
         feature_list = []
         metadata_list = []
@@ -28,13 +28,22 @@ class feature_Extractor():
             #metadata_list.append(np.array([index, file_name, shape_class]))
             #feature_list.append(self.extract_global_features(mesh, index))
 
+            a3, d1, d2, d3, d4 = self.extract_distribution_features(mesh, index)
+            A3.append(a3)
+            D1.append(d1)
+            D2.append(d2)
+            D3.append(d3)
+            D4.append(d4)
 
             index += 1
    
-        # saves both databases as numpy arrays in a file
-        np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
-        np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
-        #util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases.npy", )
+        # saves meta and feature databases as numpy arrays in a seperate file
+        #np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
+        #np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
+
+        # save all distributions in one file
+        util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases.npy", 
+                             A3=A3, D1=D1, D2=D2, D3=D3, D4 =D4)
 
         end = time.time()
         config.lg.log(f"Finished feature extraction for {index} objects in {round(((end-start)) / 60, 2) } minutes")
@@ -65,22 +74,20 @@ class feature_Extractor():
     def extract_distribution_features(self, mesh, index, samples = 10000, bins = 10):
         vertices = np.asarray(mesh.vertices)
         A3 = np.append(index, self.A3(vertices, samples, bins))
-        '''
-        D1 = self.D1(vertices)
-        D2 = self.D2(vertices)
-        D3 = self.D3(vertices)
-        D4 = self.D4(vertices)        
-        '''
-
-        return A3
+        D1 = np.append(index, self.D1(vertices, samples, bins))
+        D2 = np.append(index, self.D2(vertices, samples, bins))   
+        D3 = np.append(index, self.D3(vertices, samples, bins))
+        D4 = np.append(index, self.D4(vertices, samples, bins))       
+        
+        return A3, D1, D2, D3, D4
 
     # angle between 3 random vertices
     def A3(self, vertices, samples, bins):
         angles = []
         for i in range(samples):
-            random_vertices = self.random_vertices(vertices, 3)
-            v1 = random_vertices[0] -random_vertices[1]
-            v2 = random_vertices[2] -random_vertices[1]
+            rvs = self.random_vertices(vertices, 3)
+            v1 = rvs[0] -rvs[1]
+            v2 = rvs[2] -rvs[1]
             v1_u = v1 / np.linalg.norm(v1)
             v2_u = v2 / np.linalg.norm(v2)
             # adds angle in radians, for degrees use np.degrees(angle)
@@ -89,17 +96,43 @@ class feature_Extractor():
     
     # distance between barycenter and random vertex
     def D1(self, vertices, samples, bins):
-        pass
+        rvs = []
+        for i in range(samples):
+            rvs.append(random.choice(vertices))
+        distances = np.linalg.norm(rvs, axis=1)
+        return self.distribute_values(distances, bins)
+        
     # distance between 2 random vertices
     def D2(self, vertices, samples, bins):
-        
-        pass
+        vectors = []
+        for i in range(samples):
+            rvs = self.random_vertices(vertices, 2)
+            vectors.append(rvs[0] - rvs [1])
+        distances = np.linalg.norm(vectors, axis=1)
+        return self.distribute_values(distances, bins)
+
     # square root of area of triangle given by 3 random vertices
     def D3(self, vertices, samples, bins):
-        pass
+        normals = []
+        for i in range(samples):
+            rvs = self.random_vertices(vertices, 3)
+            v1 = rvs[0] -rvs[1]
+            v2 = rvs[2] -rvs[1]
+            normals.append(np.cross(v1, v2))
+        areas = np.linalg.norm(normals, axis=1) / 2
+        return self.distribute_values(np.sqrt(areas), bins)
+
     # cube root of volume of tetrahedron formed by 4 random vertices 
     def D4(self, vertices, samples, bins):
-        pass
+        volumes = []
+        for i in range(samples):
+            rvs = self.random_vertices(vertices, 4)
+            # vertices of base triangle, translated by last point so its at
+            v1 = rvs[1]-rvs[0]
+            v2 = rvs[2]-rvs[0]
+            v3 = rvs[3]-rvs[0]
+            volumes.append(np.dot(np.cross(v1, v2), v3)/6)
+        return self.distribute_values(np.cbrt(volumes), bins)
 
     # returns the specified amount of unique vertices
     def random_vertices(self, vertices, amount):
@@ -205,16 +238,10 @@ class feature_Extractor():
 
 fe = feature_Extractor()
 
-mesh = config.ml.load_mesh("Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz")
-vertices = np.asarray(mesh.vertices)
-
-print(fe.extract_distribution_features(mesh, -1, 1000))
-#print(fe.A3(vertices, 100, 5))
-
-
-#fe.extract_features_from_database()
+fe.extract_features_from_database()
 #print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
 #print(np.load("Data\\DataAnalysis\\metaDatabase.npy"))
+print(np.load("Data\\DataAnalysis\\distributionDatabases.npy"))
 
 #_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
 #print(row)
