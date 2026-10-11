@@ -4,34 +4,45 @@ import open3d as o3d
 import config
 from renderer import render_mode
 import utility as util
+import time
+import random
 
 class feature_Extractor():
     def __init__(self):
         config.initialize()
 
     # extracts from a given database and stores them in two numpy arrays
-    def extract_features_from_database(self, directory ="Data\\SmallShapeDatabase"):
+    def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
         index = 0
         feature_list = []
         metadata_list = []
+        A3 = D1 = D2 = D3 = D4 = []
 
-        all_files = util.get_all_obj_files(directory)
+        start = time.time()
+        all_files = util.get_all_files(directory)
 
         for file in all_files:
             _, shape_class, file_name = file
             mesh = config.ml.load_mesh(util.get_path(file))
 
-            metadata_list.append(np.array([index, file_name, shape_class]))
-            feature_list.append(self.extract_features(mesh, index))
+            #metadata_list.append(np.array([index, file_name, shape_class]))
+            #feature_list.append(self.extract_global_features(mesh, index))
+
+
             index += 1
    
         # saves both databases as numpy arrays in a file
         np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
         np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
+        #util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases.npy", )
+
+        end = time.time()
+        config.lg.log(f"Finished feature extraction for {index} objects in {round(((end-start)) / 60, 2) } minutes")
+      
 
 
     # extracts all features of an objects and saves them as tuple
-    def extract_features(self, mesh, index):
+    def extract_global_features(self, mesh, index):
         vertices = np.asarray(mesh.vertices)
         triangles = np.asarray(mesh.triangles)
         convex_hull, _ = mesh.compute_convex_hull()
@@ -51,6 +62,57 @@ class feature_Extractor():
         # surface area, compactness, 3D rectangularity, diameter, convexity, eccentricity 
         return np.array([index, surf, cmp, rect, dm, conv, ecc])
 
+    def extract_distribution_features(self, mesh, index, samples = 10000, bins = 10):
+        vertices = np.asarray(mesh.vertices)
+        A3 = np.append(index, self.A3(vertices, samples, bins))
+        '''
+        D1 = self.D1(vertices)
+        D2 = self.D2(vertices)
+        D3 = self.D3(vertices)
+        D4 = self.D4(vertices)        
+        '''
+
+        return A3
+
+    # angle between 3 random vertices
+    def A3(self, vertices, samples, bins):
+        angles = []
+        for i in range(samples):
+            random_vertices = self.random_vertices(vertices, 3)
+            v1 = random_vertices[0] -random_vertices[1]
+            v2 = random_vertices[2] -random_vertices[1]
+            v1_u = v1 / np.linalg.norm(v1)
+            v2_u = v2 / np.linalg.norm(v2)
+            # adds angle in radians, for degrees use np.degrees(angle)
+            angles.append(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+        return self.distribute_values(angles, bins)
+    
+    # distance between barycenter and random vertex
+    def D1(self, vertices, samples, bins):
+        pass
+    # distance between 2 random vertices
+    def D2(self, vertices, samples, bins):
+        
+        pass
+    # square root of area of triangle given by 3 random vertices
+    def D3(self, vertices, samples, bins):
+        pass
+    # cube root of volume of tetrahedron formed by 4 random vertices 
+    def D4(self, vertices, samples, bins):
+        pass
+
+    # returns the specified amount of unique vertices
+    def random_vertices(self, vertices, amount):
+        indices = random.sample(range(0, len(vertices)), amount)
+        results = []
+        for i in indices:
+            results.append(vertices[i])
+        return results
+
+    def distribute_values(self, values, bin_amount):
+        hist, bins = np.histogram(values, bins=bin_amount)
+        return hist
+    
    
     def volume(self, vertices, triangles):
         vol = 0
@@ -137,17 +199,25 @@ class feature_Extractor():
                 print(row)
                 return int(row[0])
         return -1
+
+    
         
 
 fe = feature_Extractor()
 
+mesh = config.ml.load_mesh("Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz")
+vertices = np.asarray(mesh.vertices)
+
+print(fe.extract_distribution_features(mesh, -1, 1000))
+#print(fe.A3(vertices, 100, 5))
+
+
 #fe.extract_features_from_database()
 #print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
-#fe.extract_features_from_database()
-#print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
+#print(np.load("Data\\DataAnalysis\\metaDatabase.npy"))
 
 #_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
 #print(row)
 #fe.extract_features_from_database()
-print(fe.retrieve_features("Data\\SmallShapeDatabase\\Mug\\D00172.obj", 'D00172.obj'))
+#print(fe.retrieve_features("Data\\SmallShapeDatabase\\Mug\\D00172.obj", 'D00172.obj'))
 
