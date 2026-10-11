@@ -25,8 +25,8 @@ class feature_Extractor():
             _, shape_class, file_name = file
             mesh = config.ml.load_mesh(util.get_path(file))
 
-            #metadata_list.append(np.array([index, file_name, shape_class]))
-            #feature_list.append(self.extract_global_features(mesh, index))
+            metadata_list.append(np.array([index, file_name, shape_class]))
+            feature_list.append(self.extract_global_features(mesh, index))
 
             a3, d1, d2, d3, d4 = self.extract_distribution_features(mesh, index)
             A3.append(a3)
@@ -38,11 +38,11 @@ class feature_Extractor():
             index += 1
    
         # saves meta and feature databases as numpy arrays in a seperate file
-        #np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
-        #np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
+        np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
+        np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
 
         # save all distributions in one file
-        util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases.npy", 
+        util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases", 
                              A3=A3, D1=D1, D2=D2, D3=D3, D4 =D4)
 
         end = time.time()
@@ -136,14 +136,19 @@ class feature_Extractor():
 
     # returns the specified amount of unique vertices
     def random_vertices(self, vertices, amount):
-        indices = random.sample(range(0, len(vertices)), amount)
+        indices = random.sample(range(len(vertices)), amount)
         results = []
         for i in indices:
             results.append(vertices[i])
         return results
 
     def distribute_values(self, values, bin_amount):
-        hist, bins = np.histogram(values, bins=bin_amount)
+        if np.any(np.isnan(values)):
+            print("found nan value in a computation")
+            filtered_vals = [x for x in values if x == x]
+            hist, bins = np.histogram(filtered_vals, bins=bin_amount)
+        else:
+            hist, bins = np.histogram(values, bins=bin_amount)
         return hist
     
    
@@ -217,12 +222,15 @@ class feature_Extractor():
         mesh = config.ml.load_mesh(meshpath)
         features = np.load("Data\\DataAnalysis\\featureDatabase.npy")
         meta_data = np.load("Data\\DataAnalysis\\metaDatabase.npy")
+        distributions = np.load("Data\\DataAnalysis\\metaDatabase.npz")
 
         mesh_index = self.get_mesh_index(filename, meta_data)
         if mesh_index < 0:
-            features = self.extract_features(mesh, -1)
+            features = self.extract_global_features(mesh, -1)
+            distributions = self.extract_distribution_features(mesh, -1)
         else:
             features = features[mesh_index]
+
 
         return mesh, features
 
@@ -239,12 +247,3 @@ class feature_Extractor():
 fe = feature_Extractor()
 
 fe.extract_features_from_database()
-#print(np.load("Data\\DataAnalysis\\featureDatabase.npy"))
-#print(np.load("Data\\DataAnalysis\\metaDatabase.npy"))
-print(np.load("Data\\DataAnalysis\\distributionDatabases.npy"))
-
-#_, row = fe.retrieve_features("Data\\NormalizedShapeDatabase\\AquaticAnimal\\m57.obj", '57.obj')
-#print(row)
-#fe.extract_features_from_database()
-#print(fe.retrieve_features("Data\\SmallShapeDatabase\\Mug\\D00172.obj", 'D00172.obj'))
-
