@@ -169,95 +169,55 @@ class shapeNormalizerPyMeshLab():
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, meshset, object_entry, path_to_new_database):
-        #mesh = self.general_cleanup(mesh)
-        #mesh = self.fill_holes(mesh)
-        #self.orient_triangles(mesh, object_entry)
+        self.fill_holes(meshset)
+        self.orient_triangles(meshset)
         self.translate_to_barycenter_mesh(meshset)
         #mesh = self.resampler.resample_one_mesh(mesh)
-        #mesh_values = normalizerMeshValues(mesh)
-        #eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
-        #self.align_to_world_frame(mesh_values, eigen_vectors)
-        #self.flip_test(mesh_values)
-        #self.scale_to_unit(mesh_values)
-        #self.save_mesh(mesh_values, object_entry, path_to_new_database)
+        self.apply_principal_axis(meshset)
+        self.flip_test(meshset)
+        self.scale_to_unit(meshset)
+        self.save_mesh(meshset, object_entry, path_to_new_database)
         pass
 
-    # def general_cleanup(self, mesh):
-    #     mesh = mesh.remove_duplicated_triangles()
-    #     mesh = mesh.remove_degenerate_triangles()
-    #     mesh = mesh.remove_duplicated_vertices()
-    #     mesh = mesh.remove_non_manifold_edges()
-    #     mesh = mesh.remove_unreferenced_vertices()
-    #     return mesh
+    def fill_holes(self, meshset):
+        config.lg.log("Start checking non manifold edges")
+        meshset.meshing_repair_non_manifold_edges(method='Remove Faces') # 'Remove Faces' or 'Split Vertices'
+        config.lg.log("Start checking non manifold vertices")
+        meshset.meshing_repair_non_manifold_vertices()
+        # Mesh must have edge manifoldness
+        config.lg.log("Start closing holes")
+        meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
 
-    # def fill_holes(self, mesh):
-    #     mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh).fill_holes().to_legacy()
-    #     mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
-    #     mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
-    #     return mesh
-
-    # def orient_triangles(self, mesh, path):
-    #     orientable = mesh.orient_triangles()
-    #     if (not orientable):
-    #         config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
+    def orient_triangles(self, meshset):
+        config.lg.log("Start orienting triangles")
+        meshset.meshing_re_orient_faces_coherently()
+        meshset.meshing_invert_face_orientation(forceflip=False)
 
     def translate_to_barycenter_mesh(self, meshset):
+        config.lg.log("Start translating to barycenter")
         measures = meshset.get_geometric_measures()
         barycenter = measures['shell_barycenter']
         meshset.compute_matrix_from_translation(traslmethod='XYZ translation', axisx=barycenter[0], axisy=barycenter[1], axisz=barycenter[2])
     
-    def compute_principal_axes_simpler(self, mesh_values):
-        # Code from example on Teams
-        cov = np.cov(mesh_values.weighted_face_centres.transpose())
-
-        # Compute eigen vectors and eigen values of covariance matrix
-        # The eigen vectors are the columns of the returned 2d-array
-        eigenvalues, eigenvectors = np.linalg.eig(cov)
-
-        # Order the eigenvectors according to the magnitude of their corresponding eigen value
-        # (from largest to smallest)
-        eigencombined = [(eigenvalues[i], eigenvectors[:, i]) for i in range(3)]
-        eigencombined.sort(key=lambda x:x[0], reverse=True)
-        eigenvectors = [item[1] for item in eigencombined]
-        eigenvalues = [item[0] for item in eigencombined]
-
-        # Replace the minor eigen vector with cross product of major and medium (to enforce right-handed reference frame)
-        eigenvectors.pop(2)
-        eigenvectors.append(np.cross(eigenvectors[0], eigenvectors[1]))
-
-        return eigenvectors, eigenvalues
+    def apply_principal_axis(self, meshset):
+        config.lg.log("Start applying principal axis")
+        meshset.compute_matrix_by_principal_axis(pointsflag=False)
     
-    def align_to_world_frame(self, meshset, eigen_vectors):
-        # https://en.wikipedia.org/wiki/Dot_product
-        
-        mesh_values.vertices = np.dot(mesh_values.vertices, eigen_vectors)
-        mesh_values.face_centres = np.dot(mesh_values.face_centres, eigen_vectors)
-        mesh_values.weighted_face_centres = np.dot(mesh_values.weighted_face_centres, eigen_vectors)
-        #Stop updating other mesh values, as we do not need them anymore (save some performance)
-
     # Use both weighted and unweighted, otherwise the weights might explode the value
-    def flip_test(self, mesh_values):                
-        x = np.sum(np.sign(mesh_values.face_centres[:,0:1]) * (mesh_values.weighted_face_centres[:,0:1] * mesh_values.face_centres[:,0:1]), axis=0)
-        y = np.sum(np.sign(mesh_values.face_centres[:,1:2]) * (mesh_values.weighted_face_centres[:,1:2] * mesh_values.face_centres[:,1:2]), axis=0)
-        z = np.sum(np.sign(mesh_values.face_centres[:,2:3]) * (mesh_values.weighted_face_centres[:,2:3] * mesh_values.face_centres[:,2:3]), axis=0)
+    def flip_test(self, meshset):   
+        config.lg.log("Start flipping test")
+        mesh = meshset.current_mesh()      
+        x = np.sum(np.sign(mesh.face_custom_point_attribute_matrix('center')[:,0:1]) * (mesh.face_custom_point_attribute_matrix('weighted_center')[:,0:1] * mesh.face_custom_point_attribute_matrix('center')[:,0:1]), axis=0)
+        y = np.sum(np.sign(mesh.face_custom_point_attribute_matrix('center')[:,1:2]) * (mesh.face_custom_point_attribute_matrix('weighted_center')[:,1:2] * mesh.face_custom_point_attribute_matrix('center')[:,1:2]), axis=0)
+        z = np.sum(np.sign(mesh.face_custom_point_attribute_matrix('center')[:,2:3]) * (mesh.face_custom_point_attribute_matrix('weighted_center')[:,2:3] * mesh.face_custom_point_attribute_matrix('center')[:,2:3]), axis=0)
 
-        if (np.sign(x) == 0 or np.sign(y) == 0 or np.sign(z) == 0):
-            config.lg.log("This motherFUCKER actually returns 0 in flip test")
-            
-        xs = np.sign(x) if np.sign(x) != 0 else 1
-        ys = np.sign(y) if np.sign(y) != 0 else 1
-        zs = np.sign(z) if np.sign(z) != 0 else 1
-
-        mesh_values.vertices[:,0:1] *= np.sign(x)
-        mesh_values.vertices[:,1:2] *= np.sign(y)
-        mesh_values.vertices[:,2:3] *= np.sign(z)
+        meshset.apply_matrix_flip_or_swap_axis(flipx=x<0, flipy=y<0, flipz=z<0)
         
-    def scale_to_unit(self, mesh_values):
-        max_bounds = np.max(mesh_values.vertices, axis=0)
-        min_bounds = np.min(mesh_values.vertices, axis=0)
-        max_diff = np.max(max_bounds - min_bounds)
-        mesh_values.vertices *= (1/max_diff)
+    def scale_to_unit(self, meshset):
+        config.lg.log("Start scaling mesh")
+        meshset.compute_matrix_from_scaling_or_normalization(unitflag=True)
     
-    def save_mesh(self, mesh_values, object_entry, path_to_new_database):
+    def save_mesh(self, meshset, object_entry, path_to_new_database):
+        config.lg.log("Start saving mesh")
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
-        config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
+        config.ml.save_mesh_numpy(total_path, mesh_vertices=meshset.current_mesh().vertex_matrix(), mesh_triangles=meshset.current_mesh().face_matrix())
