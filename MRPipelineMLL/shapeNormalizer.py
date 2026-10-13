@@ -187,6 +187,7 @@ class shapeNormalizerPyMeshLab():
         # Mesh must have edge manifoldness
         config.lg.log("Start closing holes")
         meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
+        meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
 
     def orient_triangles(self, meshset):
         config.lg.log("Start orienting triangles")

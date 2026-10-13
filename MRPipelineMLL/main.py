@@ -1,6 +1,7 @@
 from renderer import render_mode
 import config
 import numpy as np
+import open3d as o3d
 
 config.initialize()
 
@@ -8,7 +9,8 @@ mesh_path_1 = "Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz"
 #mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
 
 # Load mesh
-mesh1 = config.ml.load_mesh(mesh_path_1, open3d=True)
+#mesh1 = config.ml.load_mesh(mesh_path_1, open3d=True)
+mesh1 = o3d.io.read_triangle_mesh(o3d.data.ArmadilloMesh().path)
 #mesh2 = config.ml.load_mesh(mesh_path_2)
 
 # Render mesh

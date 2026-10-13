@@ -110,3 +110,30 @@
 2026-10-11 22:22:30   Start checking non manifold vertices
 2026-10-11 22:22:30   Start closing holes
 2026-10-11 22:22:30   Start orienting triangles
+
+ ==== STARTING NEW WRITING SESSION ==== 
+
+2026-10-13 12:01:17   Starting entire normalization pipeline + testing
+2026-10-13 12:01:17   Starting normalization process at location Data\OriginalShapeDataBase
+2026-10-13 12:01:17   2483 objects found
+2026-10-13 12:01:17   Start checking non manifold edges
+2026-10-13 12:01:17   Start checking non manifold vertices
+2026-10-13 12:01:17   Start closing holes
+2026-10-13 12:01:17   Start orienting triangles
+2026-10-13 12:01:17   Start translating to barycenter
+2026-10-13 12:01:17   Start applying principal axis
+2026-10-13 12:01:17   Start flipping test
+2026-10-13 12:01:17   Start scaling mesh
+2026-10-13 12:01:17   Start saving mesh
+2026-10-13 12:01:18   Start checking non manifold edges
+2026-10-13 12:01:18   Start checking non manifold vertices
+2026-10-13 12:01:18   Start closing holes
+2026-10-13 12:01:18   Start orienting triangles
+2026-10-13 12:01:18   Start translating to barycenter
+2026-10-13 12:01:18   Start applying principal axis
+2026-10-13 12:01:18   Start flipping test
+2026-10-13 12:01:18   Start scaling mesh
+2026-10-13 12:01:18   Start saving mesh
+2026-10-13 12:01:18   Start checking non manifold edges
+2026-10-13 12:01:18   Start checking non manifold vertices
+2026-10-13 12:01:18   Start closing holes
