@@ -16,7 +16,11 @@ class feature_Extractor():
         index = 0
         feature_list = []
         metadata_list = []
-        A3 = D1 = D2 = D3 = D4 = []
+        a3_list = []
+        d1_list = []
+        d2_list = []
+        d3_list = []
+        d4_list = []
 
         start = time.time()
         all_files = util.get_all_files(directory)
@@ -29,21 +33,20 @@ class feature_Extractor():
             feature_list.append(self.extract_global_features(mesh, index))
 
             a3, d1, d2, d3, d4 = self.extract_distribution_features(mesh, index)
-            A3.append(a3)
-            D1.append(d1)
-            D2.append(d2)
-            D3.append(d3)
-            D4.append(d4)
+            a3_list.append(a3)
+            d1_list.append(d1)
+            d2_list.append(d2)
+            d3_list.append(d3)
+            d4_list.append(d4)
 
             index += 1
    
         # saves meta and feature databases as numpy arrays in a seperate file
-        np.save("Data\\DataAnalysis\\metaDatabase.npy", metadata_list)
-        np.save("Data\\DataAnalysis\\featureDatabase.npy", feature_list)
+        util.save_numpy_file("Data\\DataAnalysis\\featureDatabases.npz", metadata=metadata_list, features=feature_list)
 
         # save all distributions in one file
-        util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases", 
-                             A3=A3, D1=D1, D2=D2, D3=D3, D4 =D4)
+        util.save_numpy_file("Data\\DataAnalysis\\distributionDatabases.npz", 
+                             A3=a3_list, D1=d1_list, D2=d2_list, D3=d3_list, D4=d4_list)
 
         end = time.time()
         config.lg.log(f"Finished feature extraction for {index} objects in {round(((end-start)) / 60, 2) } minutes")
@@ -64,14 +67,14 @@ class feature_Extractor():
         dm = self.diameter(convex_hull)
         conv = self.convexity(vol, convex_hull)
         ecc = self.eccentricity(obb)
-        #sph = self.sphericity(cmp)
+        sph = self.sphericity(cmp)
         #centr = self.centroid(vertices)        
 
         # for Assignment:
-        # surface area, compactness, 3D rectangularity, diameter, convexity, eccentricity 
-        return np.array([index, surf, cmp, rect, dm, conv, ecc])
+        # surface area, sphericity, 3D rectangularity, diameter, convexity, eccentricity 
+        return np.array([index, surf, sph, rect, dm, conv, ecc])
 
-    def extract_distribution_features(self, mesh, index, samples = 10000, bins = 10):
+    def extract_distribution_features(self, mesh, index, samples = 10000, bins = 20):
         vertices = np.asarray(mesh.vertices)
         A3 = np.append(index, self.A3(vertices, samples, bins))
         D1 = np.append(index, self.D1(vertices, samples, bins))
@@ -217,6 +220,7 @@ class feature_Extractor():
         config.rd.launch_renderer()
 
     # returns all features for a given mesh, if available in database with correct index, else newly calculated with index -1
+    # DOES NOT WORK WITH NEW TYPE OF SAVING YET
     def retrieve_features(self, meshpath, filename):
         config.initialize()
         mesh = config.ml.load_mesh(meshpath)
@@ -247,3 +251,4 @@ class feature_Extractor():
 fe = feature_Extractor()
 
 fe.extract_features_from_database()
+
