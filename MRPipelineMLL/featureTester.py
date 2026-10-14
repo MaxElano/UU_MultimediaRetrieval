@@ -1,0 +1,198 @@
+import numpy as np
+import open3d as o3d # for generating sphere and rectangle
+import config
+from renderer import render_mode # for testing purposes!
+from matplotlib import pyplot as plt
+import utility as util
+from enum import Enum
+from featureExtractor import feature_Extractor
+
+class Extremity(Enum):
+    MAX = 1
+    MIN = 2
+
+# holds the column the feature can be found at as well as the name of the feature
+# just elementary features (for now? perchance)
+class Feature(Enum):
+    SURF = (1, "Surface Area")
+    SPH = (2, "Sphericity")
+    RECT = (3, "Rectangularity")
+    DM = (4, "Diameter")
+    CONV = (5, "Convexity")
+    ECC = (6, "Eccentricity")
+
+# Main check function
+class FeatureTester():
+    def __init__(self):
+        config.initialize()
+        # when implemented
+        #config.lg.set_to_write()
+        featureDatabases = util.load_numpy_file("Data\\DataAnalysis\\featureDatabases.npz")
+        
+        self.metaDatabase = featureDatabases['metadata.npy']
+        self.featureDatabase = featureDatabases['features.npy']
+        
+        distributionDatabases = util.load_numpy_file("Data\\DataAnalysis\\distributionDatabases.npz")
+
+        self.A3 = distributionDatabases["A3"]
+        self.D1 = distributionDatabases["D1"]
+        self.D2 = distributionDatabases["D2"]
+        self.D3 = distributionDatabases["D3"]
+        self.D4 = distributionDatabases["D4"]
+
+    def testFeatureExtraction(self):
+
+        # Elementary features
+        index1, value1 = self.get_extreme_feature(Feature.SURF, Extremity.MIN)
+        index2, value2 = self.get_extreme_feature(Feature.SURF, Extremity.MAX)
+        self.save_elementary_feature(index1, value1, Feature.SURF, "Minimum")
+        self.save_elementary_feature(index2, value2, Feature.SURF, "Maximum")
+
+        
+        index1, value1 = self.get_extreme_feature(Feature.CONV, Extremity.MIN)
+        index2, value2 = self.get_extreme_feature(Feature.CONV, Extremity.MAX)
+        self.save_elementary_feature(index1, value1, Feature.CONV, "Minimum")
+        self.save_elementary_feature(index2, value2, Feature.CONV, "Maximum")
+        self.compare_sphere()
+        self.compare_rectangle()
+        #self.plot_per_category("D4")
+
+        # Distribution features
+
+
+        
+
+        # Add array to text file ?!
+
+    # works for elementaary features
+    def get_extreme_feature(self, 
+                            feature : Feature, # includes the column and ft name
+                            extremity : Extremity # max/min
+                            ):
+        """
+        find the mesh with the highest/lowest value for a given feature.
+        returns the mesh index, and value 
+        """
+        column, feature_name = feature.value
+
+        values = self.featureDatabase[:, column].astype(float)
+        if extremity == Extremity.MAX:
+            index = np.argmax(values)
+        else:
+            index = np.argmin(values)
+        extreme_value = values[index]
+
+        return index, extreme_value
+
+    def save_elementary_feature(self,
+                                index : int,
+                                value :float,
+                                feature : Feature,
+                                description = "Value of the "
+                                ):
+        column, feature_name = feature.value
+        mesh_name = self.metaDatabase[index, 1]
+        mesh_category = self.metaDatabase[index, 2]
+
+        print(f"{description} {feature_name}: {value}")
+        print(f"Index: {index}")
+        print(f"Mesh name: {mesh_name}")
+        print(f"Mesh Category: {mesh_category}")
+
+
+
+        # print screenshot of shape to folder Screenshots\\features\\Volume+shapename
+        # Add to an array which will be written to a text file: Volume of {shapename} = volume
+
+        # insert shape which is round
+        # do the same allll the way down
+
+    # Surface Area
+
+    # Sphericity
+    def compare_sphere(self):
+        # Generate sphere mesh
+        sphere_mesh = o3d.geometry.TriangleMesh.create_sphere(radius = 0.5)
+        vertices = np.asarray(sphere_mesh.vertices)
+        triangles = np.asarray(sphere_mesh.triangles)
+        volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
+        surface = feature_Extractor.surface_area(feature_Extractor, sphere_mesh)
+        compactness = feature_Extractor.compactness(feature_Extractor, surface, volume)
+        sphericity = feature_Extractor.sphericity(feature_Extractor, compactness)
+        print(sphericity)
+        # get features
+        
+        # print n shi
+
+
+    # Rectangularity -> generate rectangle tc
+    def compare_rectangle(self):
+        # Generate rectangle mesh
+        rectangle_mesh = o3d.geometry.TriangleMesh.create_box(width = 1.0, height = 1.0, depth = 1.0)
+        rectangle_mesh.translate([-0.5, -0.5, -0.5])
+        # get features
+        vertices = np.asarray(rectangle_mesh.vertices)
+        triangles = np.asarray(rectangle_mesh.triangles)
+        convex_hull, _ = rectangle_mesh.compute_convex_hull()
+        obb = convex_hull.get_axis_aligned_bounding_box() #we can use axis aligned here bc of normalization step
+        volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
+        rectangularity = feature_Extractor.rectangularity(feature_Extractor, volume, obb)
+        print(rectangularity)
+        # print n shi
+
+    # For the given distribution feature, for all categories, show a histogram with ALL lines <3
+    def plot_per_category(self,
+                          feature : str # mb i couldnt be arsed
+                          # should be either A3, D1, D2, D3, D4
+                          ):
+        categories = np.unique(self.metaDatabase[:, 2])
+        print(categories)
+
+        for category in categories:
+            indices = self.metaDatabase[self.metaDatabase[:,2] == category][:,0]
+            print(indices)
+            fig, ax = plt.subplots(figsize=(10,5))
+            for index in indices:
+                if feature == "A3":
+                    ax.plot(self.A3[int(index)], alpha=0.3, linewidth = 1)
+                    plt.title(f"A3 Distributions within category: {category}")
+                elif feature == "D1":
+                    ax.plot(self.D1[int(index)], alpha=0.3, linewidth = 1)
+                    plt.title(f"D1 Distributions within category: {category}")
+                elif feature == "D2":
+                    ax.plot(self.D2[int(index)], alpha=0.3, linewidth = 1)
+                    plt.title(f"D2 Distributions within category: {category}")
+                elif feature == "D3":
+                    ax.plot(self.D3[int(index)], alpha=0.3, linewidth = 1)
+                    plt.title(f"D3 Distributions within category: {category}")
+                elif feature == "D4":
+                    ax.plot(self.D4[int(index)], alpha=0.3, linewidth = 1)
+                    plt.title(f"D4 Distributions within category: {category}")
+
+            plt.xlabel("Bins")
+            plt.ylabel(f"Distribution variable")
+            plt.tight_layout()
+            plt.show()
+
+    # A3
+        # pick 2 similar shapes
+
+        # take index from metaDatabase
+        # take A3 from distributionDatabases using index
+        # compute histogram based on A3
+
+        # print histogram to Screenshots
+
+
+        # pick a very different shape
+
+
+        # Within a catgory, plot all histograms on top of ach othr: 
+        # To s how similar thy ar.
+        # similar within a class: liklihood you will gt th rihgt catgory high
+        # similarity btwn classs: liklihood that you will gt a diffrnt catgory highr
+        # mak sur to hav nough bins
+        # for all classs
+
+#ft = FeatureTester()
+#ft.testFeatureExtraction()
