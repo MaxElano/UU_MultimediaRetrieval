@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import utility as util
 from enum import Enum
 from featureExtractor import feature_Extractor
+from imageGenerator import imageGenerator
 
 class Extremity(Enum):
     MAX = 1
@@ -22,11 +23,12 @@ class Feature(Enum):
     ECC = (6, "Eccentricity")
 
 # Main check function
-class FeatureTester():
+class featureTester():
     def __init__(self):
-        config.initialize()
         # when implemented
         #config.lg.set_to_write()
+        ig = imageGenerator()
+
         featureDatabases = util.load_numpy_file("Data\\DataAnalysis\\featureDatabases.npz")
         
         self.metaDatabase = featureDatabases['metadata.npy']
@@ -40,28 +42,29 @@ class FeatureTester():
         self.D3 = distributionDatabases["D3"]
         self.D4 = distributionDatabases["D4"]
 
+        self.saveFolder = "Data\\DataAnalysis\\FeatureChecker"
+        self.logLocation = self.saveFolder + "\\FeatureValueLogs"
+
     def testFeatureExtraction(self):
+        util.create_folder(self.saveFolder)
+        util.empty_file(self.logLocation)
 
         # Elementary features
         index1, value1 = self.get_extreme_feature(Feature.SURF, Extremity.MIN)
         index2, value2 = self.get_extreme_feature(Feature.SURF, Extremity.MAX)
-        self.save_elementary_feature(index1, value1, Feature.SURF, "Minimum")
-        self.save_elementary_feature(index2, value2, Feature.SURF, "Maximum")
+        self.save_elementary_feature(value1, Feature.SURF, "Minimum", index1)
+        self.save_elementary_feature(value2, Feature.SURF, "Maximum", index2)
 
-        
         index1, value1 = self.get_extreme_feature(Feature.CONV, Extremity.MIN)
         index2, value2 = self.get_extreme_feature(Feature.CONV, Extremity.MAX)
-        self.save_elementary_feature(index1, value1, Feature.CONV, "Minimum")
-        self.save_elementary_feature(index2, value2, Feature.CONV, "Maximum")
-        self.compare_sphere()
-        self.compare_rectangle()
-        #self.plot_per_category("D4")
+        self.save_elementary_feature(value1, Feature.CONV, "Minimum", index1)
+        self.save_elementary_feature(value2, Feature.CONV, "Maximum", index2)
+        #self.compare_sphere()
+        #self.compare_rectangle()
+        self.plot_per_category("D4")
 
         # Distribution features
-
-
         
-
         # Add array to text file ?!
 
     # works for elementaary features
@@ -85,17 +88,23 @@ class FeatureTester():
         return index, extreme_value
 
     def save_elementary_feature(self,
-                                index : int,
-                                value :float,
+                                feature_value : float,
                                 feature : Feature,
-                                description = "Value of the "
+                                description = "Value of the ",
+                                index = None
                                 ):
         column, feature_name = feature.value
         mesh_name = self.metaDatabase[index, 1]
         mesh_category = self.metaDatabase[index, 2]
 
-        print(f"{description} {feature_name}: {value}")
-        print(f"Index: {index}")
+        title = feature_name + "_" + mesh_name
+        screenshot_location = "Data\\Screenshots\\feature"
+        mesh_location = "Data\\NormalizedShapeDatabase\\" + mesh_category + "\\" + mesh_name
+        imageGenerator.generateFromPath(imageGenerator, [mesh_location], screenshot_location, title)
+
+        print(f"{description} {feature_name}: {feature_value}")
+        if index:
+            print(f"Index: {index}")
         print(f"Mesh name: {mesh_name}")
         print(f"Mesh Category: {mesh_category}")
 
@@ -108,37 +117,6 @@ class FeatureTester():
         # do the same allll the way down
 
     # Surface Area
-
-    # Sphericity
-    def compare_sphere(self):
-        # Generate sphere mesh
-        sphere_mesh = o3d.geometry.TriangleMesh.create_sphere(radius = 0.5)
-        vertices = np.asarray(sphere_mesh.vertices)
-        triangles = np.asarray(sphere_mesh.triangles)
-        volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
-        surface = feature_Extractor.surface_area(feature_Extractor, sphere_mesh)
-        compactness = feature_Extractor.compactness(feature_Extractor, surface, volume)
-        sphericity = feature_Extractor.sphericity(feature_Extractor, compactness)
-        print(sphericity)
-        # get features
-        
-        # print n shi
-
-
-    # Rectangularity -> generate rectangle tc
-    def compare_rectangle(self):
-        # Generate rectangle mesh
-        rectangle_mesh = o3d.geometry.TriangleMesh.create_box(width = 1.0, height = 1.0, depth = 1.0)
-        rectangle_mesh.translate([-0.5, -0.5, -0.5])
-        # get features
-        vertices = np.asarray(rectangle_mesh.vertices)
-        triangles = np.asarray(rectangle_mesh.triangles)
-        convex_hull, _ = rectangle_mesh.compute_convex_hull()
-        obb = convex_hull.get_axis_aligned_bounding_box() #we can use axis aligned here bc of normalization step
-        volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
-        rectangularity = feature_Extractor.rectangularity(feature_Extractor, volume, obb)
-        print(rectangularity)
-        # print n shi
 
     # For the given distribution feature, for all categories, show a histogram with ALL lines <3
     def plot_per_category(self,
@@ -174,6 +152,45 @@ class FeatureTester():
             plt.tight_layout()
             plt.show()
 
+    # Sphericity
+    def compare_sphere(self):
+        # Generate sphere mesh
+        sphere_mesh = o3d.geometry.TriangleMesh.create_sphere(radius = 0.5)
+        vertices = np.asarray(sphere_mesh.vertices)
+        triangles = np.asarray(sphere_mesh.triangles)
+        volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
+        surface = feature_Extractor.surface_area(feature_Extractor, sphere_mesh)
+        compactness = feature_Extractor.compactness(feature_Extractor, surface, volume)
+        sphericity = feature_Extractor.sphericity(feature_Extractor, compactness)
+        print(sphericity)
+        # get features
+        
+        # print n shi
+
+    # Rectangularity -> generate rectangle tc
+    def compare_rectangle(self):
+        # Generate rectangle mesh
+        rectangle_mesh = o3d.geometry.TriangleMesh.create_box(width = 1.0, height = 1.0, depth = 1.0)
+        rectangle_mesh.translate([-0.5, -0.5, -0.5])
+        # get features
+        vertices = np.asarray(rectangle_mesh.vertices)
+        triangles = np.asarray(rectangle_mesh.triangles)
+        convex_hull, _ = rectangle_mesh.compute_convex_hull()
+        obb = convex_hull.get_axis_aligned_bounding_box() #we can use axis aligned here bc of normalization step
+        volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
+        rectangularity = feature_Extractor.rectangularity(feature_Extractor, volume, obb)
+        print(rectangularity)
+        # print n shi
+
+    def compare_distribution(self,
+                             feature : str):
+        # take 2 shapes from the same category and 1 from a very different one!
+
+        # take distribution values from those
+
+        # compute histograms + make screenshots
+        return False
+    
     # A3
         # pick 2 similar shapes
 
@@ -183,9 +200,7 @@ class FeatureTester():
 
         # print histogram to Screenshots
 
-
         # pick a very different shape
-
 
         # Within a catgory, plot all histograms on top of ach othr: 
         # To s how similar thy ar.
@@ -194,5 +209,5 @@ class FeatureTester():
         # mak sur to hav nough bins
         # for all classs
 
-#ft = FeatureTester()
-#ft.testFeatureExtraction()
+ft = featureTester()
+ft.testFeatureExtraction()
