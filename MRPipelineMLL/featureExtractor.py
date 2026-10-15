@@ -6,6 +6,7 @@ from renderer import render_mode
 import utility as util
 import time
 import random
+import math
 
 class feature_Extractor():
     def __init__(self):
@@ -87,14 +88,23 @@ class feature_Extractor():
     # angle between 3 random vertices
     def A3(self, vertices, samples, bins):
         angles = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 3)
-            v1 = rvs[0] -rvs[1]
-            v2 = rvs[2] -rvs[1]
-            v1_u = v1 / np.linalg.norm(v1)
-            v2_u = v2 / np.linalg.norm(v2)
-            # adds angle in radians, for degrees use np.degrees(angle)
-            angles.append(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+        k = math.ceil(pow(samples, 1.0/3.0))
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                for c in range(k):
+                    vc = random.choice(vertices)
+                    if np.array_equal(va, vc) or np.array_equal(vb, vc):          # do not allow duplicates
+                        continue
+                    v1 = va -vb
+                    v2 = vc -vb
+                    v1_u = v1 / np.linalg.norm(v1)
+                    v2_u = v2 / np.linalg.norm(v2)
+                    # adds angle in radians, for degrees use np.degrees(angle)
+                    angles.append(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))            
         return self.distribute_values(angles, bins)
     
     # distance between barycenter and random vertex
@@ -104,37 +114,64 @@ class feature_Extractor():
             rvs.append(random.choice(vertices))
         distances = np.linalg.norm(rvs, axis=1)
         return self.distribute_values(distances, bins)
-        
+
     # distance between 2 random vertices
     def D2(self, vertices, samples, bins):
         vectors = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 2)
-            vectors.append(rvs[0] - rvs [1])
+        k = int(pow(samples, 1.0/2.0))  #compute number of samples along 2 dimensions
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                vectors.append(va - vb)
         distances = np.linalg.norm(vectors, axis=1)
         return self.distribute_values(distances, bins)
 
     # square root of area of triangle given by 3 random vertices
     def D3(self, vertices, samples, bins):
         normals = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 3)
-            v1 = rvs[0] -rvs[1]
-            v2 = rvs[2] -rvs[1]
-            normals.append(np.cross(v1, v2))
+        k = math.ceil(pow(samples, 1.0/3.0))
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                for c in range(k):
+                    vc = random.choice(vertices)
+                    if np.array_equal(va, vc) or np.array_equal(vb, vc):          # do not allow duplicates
+                        continue
+                    v1 = va -vb
+                    v2 = vc -vb
+                    normals.append(np.cross(v1, v2))
         areas = np.linalg.norm(normals, axis=1) / 2
         return self.distribute_values(np.sqrt(areas), bins)
 
     # cube root of volume of tetrahedron formed by 4 random vertices 
     def D4(self, vertices, samples, bins):
         volumes = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 4)
-            # vertices of base triangle, translated by last point so its at
-            v1 = rvs[1]-rvs[0]
-            v2 = rvs[2]-rvs[0]
-            v3 = rvs[3]-rvs[0]
-            volumes.append(np.dot(np.cross(v1, v2), v3)/6)
+        k = int(pow(samples, 1.0/4.0))
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                for c in range(k):
+                    vc = random.choice(vertices)
+                    if np.array_equal(va, vc) or np.array_equal(vb, vc):       
+                        continue
+                    for d in range(k):
+                        vd = random.choice(vertices)
+                        if np.array_equal(va, vd) or np.array_equal(vb, vd) or np.array_equal(vc, vd):   
+                            continue
+                        # vertices of base triangle, translated by last point so its at
+                        v1 = vb-va
+                        v2 = vc-va
+                        v3 = vd-va
+                        volumes.append(np.dot(np.cross(v1, v2), v3)/6)
         return self.distribute_values(np.cbrt(volumes), bins)
 
     # returns the specified amount of unique vertices
@@ -144,8 +181,10 @@ class feature_Extractor():
         for i in indices:
             results.append(vertices[i])
         return results
+  
 
     def distribute_values(self, values, bin_amount):
+        print(len(values))
         if np.any(np.isnan(values)):
             print("found nan value in a computation")
             filtered_vals = [x for x in values if x == x]
@@ -251,4 +290,3 @@ class feature_Extractor():
 fe = feature_Extractor()
 
 fe.extract_features_from_database()
-
