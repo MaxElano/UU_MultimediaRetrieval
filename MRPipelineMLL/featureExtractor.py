@@ -184,13 +184,7 @@ class feature_Extractor():
   
 
     def distribute_values(self, values, bin_amount):
-        print(len(values))
-        if np.any(np.isnan(values)):
-            print("found nan value in a computation")
-            filtered_vals = [x for x in values if x == x]
-            hist, bins = np.histogram(filtered_vals, bins=bin_amount)
-        else:
-            hist, bins = np.histogram(values, bins=bin_amount)
+        hist, bins = np.histogram(values, bins=bin_amount)
         return hist
     
    
