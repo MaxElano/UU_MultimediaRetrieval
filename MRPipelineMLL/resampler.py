@@ -2,6 +2,7 @@ import open3d as o3d
 from renderer import render_mode
 import config
 import os
+import pymeshlab  as pml
 
 '''
     resample outliers with poorly-sampled shapes
@@ -19,7 +20,7 @@ import os
     A rough estimate of a good sample (vertex) count is around 5K..10K. 
 '''
 
-class resampler():
+class resampler_open3d():
     def __init__(self):
         pass
 
@@ -103,6 +104,32 @@ class resampler():
         config.rd.add_mesh(mesh_after.translate((1, 0, 0)))
         config.rd.launch_renderer()
 
+
+class resampler_pymeshlab():
+    def __init__(self):
+        pass
+
+    def resample_one_mesh(self, mesh, min = 5000, max = 10000):
+        if len(mesh.vertices) <= min:
+            return self.refine(mesh, min)
+        elif len(mesh.vertices) >= max:
+            return self.simplify_by_decimation(mesh, max, max*2)  
+        return mesh
+
+    # refines a mesh so that its number of faces is higher than a given number
+    def refine(self, mesh, min_vertices):
+        # checks if the mesh is refined enough- non-manifold meshes sometimes lead to high nr of triangles while vertices stay low, so an extra check is done
+        while mesh.current_mesh().vertex_number() < min_vertices and mesh.current_mesh().face_number() < 100000:
+            # still needs to be tested if this is the best function for it
+            mesh.meshing_isotropic_explicit_remeshing(iterations=1)
+        return mesh
+
+
+    # simplify a mesh to have a certain amount of vertices
+    def simplify_by_decimation(self, mesh, max_vertices):
+        percentage = (max_vertices/mesh.current_mesh().vertex_number())
+        mesh.meshing_decimation_quadric_edge_collapse(targetperc=percentage)
+        return mesh
 
 #rs = resampler()
 #rs.resample_all(3000, 10000)
