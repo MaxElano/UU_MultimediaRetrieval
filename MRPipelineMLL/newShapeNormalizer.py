@@ -65,7 +65,7 @@ class shapeNormalizerOpen3D():
     def __init__(self):
         pass
     
-    def normalize_all_meshes(self, path_to_database, path_to_new_database, show_update_every = 0):
+    def normalize_all_meshes(self, path_to_database, path_to_new_database):
         #show_update_every = 0 equals no updates
         config.lg.log(f"Starting normalization process at location {path_to_database}")
         start = time.time()
@@ -74,12 +74,10 @@ class shapeNormalizerOpen3D():
         util.create_folder(path_to_new_database)
         number_of_files = len(all_files)
         config.lg.log(f"{number_of_files} objects found")
-        pc = util.progress_printer(number_of_files, show_update_every, "objects normalized")
 
-        for file in number_of_files:
+        for file in all_files:
             mesh = config.ml.load_mesh(util.get_path(file), open3d=True)
             self.run_one_mesh(mesh, file, path_to_new_database)
-            pc.increment()
                 
         end = time.time()
         duration = end-start
@@ -105,8 +103,9 @@ class shapeNormalizerOpen3D():
         return mesh
 
     def orient_triangles(self, mesh, path):
-        orientable = mesh.orient_triangles()
-        if (not orientable):
+        try:
+            mesh.orient_triangles()
+        except:
             config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
 
     def translate_to_barycenter_mesh(self, mesh):

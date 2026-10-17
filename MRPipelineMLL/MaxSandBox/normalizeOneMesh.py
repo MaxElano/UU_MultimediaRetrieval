@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import shapeNormalizerPyMeshLab
+#from shapeNormalizer import shapeNormalizerPyMeshLab
 from newShapeNormalizer import preNormalizer
 from newShapeNormalizer import shapeNormalizerOpen3D
 import config
@@ -10,8 +10,8 @@ import open3d as o3d
 import time
 from renderer import render_mode
 
-object_path = "AquaticAnimal\\m74.obj"
-new_object_path = "AquaticAnimal\\m74.npz"
+object_path = "House\\D00941.obj"
+new_object_path = "House\\D00941.npz"
 original_mesh_path = "Data\\OriginalShapeDatabase"
 middle_path = "Data\\PreprocessedShapeDatabase"
 new_path = "Data\\NormalizedShapeDatabase"
