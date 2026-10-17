@@ -56,7 +56,7 @@ class imageGenerator():
         # Clear renderer
         config.rd.remove_all_meshes()
 
-    def generateImageFromMesh(self,
+    def generateFromMesh(self,
                       meshes,  # array where you give the meshes
                       location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                       title = "screenshot" #title of the screenshot
@@ -97,8 +97,8 @@ class imageGenerator():
         config.rd.remove_all_meshes()
 
 
-mesh_path_1 = "Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz"
+#mesh_path_1 = "Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz"
 #mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
 
-ig = imageGenerator()
-ig.generateFromPath([mesh_path_1])
+#ig = imageGenerator()
+#ig.generateFromPath([mesh_path_1])

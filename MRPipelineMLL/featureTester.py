@@ -27,7 +27,7 @@ class featureTester():
     def __init__(self):
         # when implemented
         #config.lg.set_to_write()
-        ig = imageGenerator()
+        self.ig = imageGenerator()
 
         featureDatabases = util.load_numpy_file("Data\\DataAnalysis\\featureDatabases.npz")
         
@@ -42,26 +42,27 @@ class featureTester():
         self.D3 = distributionDatabases["D3"]
         self.D4 = distributionDatabases["D4"]
 
-        self.saveFolder = "Data\\DataAnalysis\\FeatureChecker"
-        self.logLocation = self.saveFolder + "\\FeatureValueLogs"
+        self.save_folder = "Data\\DataAnalysis\\FeatureChecker"
+        self.logLocation = self.save_folder + "\\FeatureValueLogs"
+        self.screenshot_save_folder = "Features"
 
     def testFeatureExtraction(self):
-        util.create_folder(self.saveFolder)
+        util.create_folder(self.save_folder)
         util.empty_file(self.logLocation)
 
-        # Elementary features
-        index1, value1 = self.get_extreme_feature(Feature.SURF, Extremity.MIN)
-        index2, value2 = self.get_extreme_feature(Feature.SURF, Extremity.MAX)
-        self.save_elementary_feature(value1, Feature.SURF, "Minimum", index1)
-        self.save_elementary_feature(value2, Feature.SURF, "Maximum", index2)
+        for feature in Feature:
+            # Elementary features
+            index1, value1 = self.get_extreme_feature(feature, Extremity.MIN)
+            index2, value2 = self.get_extreme_feature(feature, Extremity.MAX)
+            self.save_elementary_feature(value1, feature, index1, "Minimum")
+            self.save_elementary_feature(value2, feature, index2, "Maximum")
 
-        index1, value1 = self.get_extreme_feature(Feature.CONV, Extremity.MIN)
-        index2, value2 = self.get_extreme_feature(Feature.CONV, Extremity.MAX)
-        self.save_elementary_feature(value1, Feature.CONV, "Minimum", index1)
-        self.save_elementary_feature(value2, Feature.CONV, "Maximum", index2)
-        #self.compare_sphere()
-        #self.compare_rectangle()
-        self.plot_per_category("D4")
+        title, mesh, feature_value = self.compare_sphere()
+        self.save_elementary_feature_from_mesh(feature_value, Feature.SPH, mesh, title)
+        title, mesh, feature_value = self.compare_rectangle()
+        self.save_elementary_feature_from_mesh(feature_value, Feature.RECT, mesh, title)
+
+        #self.plot_per_category("D4")
 
         # Distribution features
         
@@ -87,36 +88,47 @@ class featureTester():
 
         return index, extreme_value
 
+    def save_elementary_feature_from_mesh(self,
+                                          feature_value : float,
+                                          feature : Feature,
+                                          mesh,
+                                          mesh_title,
+                                          description = "Value of the ",
+                                          from_database = "Data\\NormalizedShapeDatabase\\"
+                                          ):
+        column, feature_name = feature.value
+
+        title = feature_name + "_" + mesh_title
+
+        self.ig.generateFromMesh([mesh], self.screenshot_save_folder, title)
+
+        with open(self.logLocation, "a", encoding="utf-8") as f:
+            f.write(f"{description} {feature_name}: {feature_value}\n")
+            f.write(f"Mesh name: {mesh_title}\n")
+
     def save_elementary_feature(self,
                                 feature_value : float,
                                 feature : Feature,
+                                index = None,
                                 description = "Value of the ",
-                                index = None
+                                from_database = "Data\\NormalizedShapeDatabase\\",
                                 ):
         column, feature_name = feature.value
+
         mesh_name = self.metaDatabase[index, 1]
         mesh_category = self.metaDatabase[index, 2]
 
         title = feature_name + "_" + mesh_name
-        screenshot_location = "Data\\Screenshots\\feature"
-        mesh_location = "Data\\NormalizedShapeDatabase\\" + mesh_category + "\\" + mesh_name
-        imageGenerator.generateFromPath(imageGenerator, [mesh_location], screenshot_location, title)
 
-        print(f"{description} {feature_name}: {feature_value}")
-        if index:
-            print(f"Index: {index}")
-        print(f"Mesh name: {mesh_name}")
-        print(f"Mesh Category: {mesh_category}")
+        mesh_location = from_database + mesh_category + "\\" + mesh_name
 
+        self.ig.generateFromPath([mesh_location], self.screenshot_save_folder, title)
 
-
-        # print screenshot of shape to folder Screenshots\\features\\Volume+shapename
-        # Add to an array which will be written to a text file: Volume of {shapename} = volume
-
-        # insert shape which is round
-        # do the same allll the way down
-
-    # Surface Area
+        with open(self.logLocation, "a", encoding="utf-8") as f:
+            f.write(f"{description} {feature_name}: {feature_value}\n")
+            f.write(f"Index: {index}\n")
+            f.write(f"Mesh name: {mesh_name}\n")
+            f.write(f"Mesh Category: {mesh_category}\n")
 
     # For the given distribution feature, for all categories, show a histogram with ALL lines <3
     def plot_per_category(self,
@@ -124,7 +136,6 @@ class featureTester():
                           # should be either A3, D1, D2, D3, D4
                           ):
         categories = np.unique(self.metaDatabase[:, 2])
-        print(categories)
 
         for category in categories:
             indices = self.metaDatabase[self.metaDatabase[:,2] == category][:,0]
@@ -155,6 +166,7 @@ class featureTester():
     # Sphericity
     def compare_sphere(self):
         # Generate sphere mesh
+        #TODO: give more vertices?
         sphere_mesh = o3d.geometry.TriangleMesh.create_sphere(radius = 0.5)
         vertices = np.asarray(sphere_mesh.vertices)
         triangles = np.asarray(sphere_mesh.triangles)
@@ -162,10 +174,8 @@ class featureTester():
         surface = feature_Extractor.surface_area(feature_Extractor, sphere_mesh)
         compactness = feature_Extractor.compactness(feature_Extractor, surface, volume)
         sphericity = feature_Extractor.sphericity(feature_Extractor, compactness)
-        print(sphericity)
-        # get features
-        
-        # print n shi
+
+        return "sphere", sphere_mesh, sphericity
 
     # Rectangularity -> generate rectangle tc
     def compare_rectangle(self):
@@ -179,8 +189,9 @@ class featureTester():
         obb = convex_hull.get_axis_aligned_bounding_box() #we can use axis aligned here bc of normalization step
         volume = feature_Extractor.volume(feature_Extractor, vertices, triangles)
         rectangularity = feature_Extractor.rectangularity(feature_Extractor, volume, obb)
-        print(rectangularity)
-        # print n shi
+
+        return "rectangle", rectangle_mesh, rectangularity
+
 
     def compare_distribution(self,
                              feature : str):
