@@ -4,6 +4,7 @@ import config
 import os
 import pymeshlab  as pml
 
+
 '''
     resample outliers with poorly-sampled shapes
 
@@ -110,11 +111,13 @@ class resampler_pymeshlab():
         pass
 
     def resample_one_mesh(self, mesh, min = 5000, max = 10000):
-        if len(mesh.vertices) <= min:
-            return self.refine(mesh, min)
-        elif len(mesh.vertices) >= max:
-            return self.simplify_by_decimation(mesh, max, max*2)  
+        vertex_count = mesh.current_mesh().vertex_number()
+        if vertex_count <= min:
+            return self.refine_copied(mesh)
+        elif vertex_count >= max:
+            return self.decimate_copied(mesh)  
         return mesh
+
 
     # refines a mesh so that its number of faces is higher than a given number
     def refine(self, mesh, min_vertices):
@@ -127,9 +130,21 @@ class resampler_pymeshlab():
 
     # simplify a mesh to have a certain amount of vertices
     def simplify_by_decimation(self, mesh, max_vertices):
-        percentage = (max_vertices/mesh.current_mesh().vertex_number())
-        mesh.meshing_decimation_quadric_edge_collapse(targetperc=percentage)
+        while mesh.current_mesh().vertex_number() > max_vertices:
+            # still needs to be tested if this is the best function for it
+            mesh.meshing_isotropic_explicit_remeshing(iterations=1)
         return mesh
+
+    def refine_copied(self, mesh_lowpoly, target_edge_length = 0.02, itrs = 3):
+        mesh_lowpoly.meshing_isotropic_explicit_remeshing(
+            targetlen=pml.PureValue(target_edge_length), iterations=itrs)
+
+
+    def decimate_copied(self, mesh_highpoly, target_edge_length = 0.02, itrs = 3):
+        mesh_highpoly.meshing_isotropic_explicit_remeshing(
+            targetlen=pml.PureValue(target_edge_length), iterations=itrs)
+
+
 
 #rs = resampler()
 #rs.resample_all(3000, 10000)
