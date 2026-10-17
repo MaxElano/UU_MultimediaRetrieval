@@ -248,7 +248,7 @@ class feature_Extractor():
     
         
 
-fe = feature_Extractor()
+#fe = feature_Extractor()
 
-fe.extract_features_from_database()
+#fe.extract_features_from_database()
 
