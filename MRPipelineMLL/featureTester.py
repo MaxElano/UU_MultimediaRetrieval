@@ -92,7 +92,7 @@ class featureTester():
                                           feature : elemFeature,
                                           mesh,
                                           mesh_title,
-                                          description = "Value of the ",
+                                          description = "Value of the "
                                           ):
         column, feature_name = feature.value
 
@@ -109,7 +109,7 @@ class featureTester():
                                 feature : elemFeature,
                                 index = None,
                                 description = "Value of the ",
-                                from_database = "Data\\NormalizedShapeDatabase\\",
+                                from_database = "Data\\NormalizedShapeDatabase\\"
                                 ):
         column, feature_name = feature.value
 
@@ -140,7 +140,6 @@ class featureTester():
 
             for index in indices:
                 ax.plot(self.dist_databases[feature_name][int(index)], alpha = 0.3, linewidth = 1)
-                #plt.title(f"{feature_name} Distributions within category: {category}")
 
             plt.xlabel("Bins")
             plt.ylabel(f"Distribution variable")
@@ -179,32 +178,35 @@ class featureTester():
         return "rectangle", rectangle_mesh, rectangularity
 
 
+    # given a list of objects, it prints the mesh screenshots and gives the distributions
+    # can be used for : comparing 2 similar (same category) and one very different shape
     def compare_distribution(self,
-                             feature : str):
+                             feature : distFeature,
+                             objects, # give 3 objects, first two being of the same category and similar, and the third one being very different
+                             from_database = "Data\\NormalizedShapeDatabase\\"
+                             ):
+        column, feature_name = feature.value
         # take 2 shapes from the same category and 1 from a very different one!
+        for obj in objects:
+            row = np.where(self.meta_db[:.1] == obj)[0][0]
+            index = int(self.meta_db[row, 0])
 
-        # take distribution values from those
+            mesh_name = self.meta_db[index, 1]
+            mesh_category = self.meta_db[index, 2]
+            title = feature_name + "_" + mesh_name
+            mesh_location = from_database + mesh_category + "\\" + mesh_name
 
-        # compute histograms + make screenshots
-        return False
-    
-    # A3
-        # pick 2 similar shapes
+            self.ig.generateFromPath([mesh_location], self.ss_save_folder, title)
+            fig, ax = plt.subplots(figsize=(10, 5))
 
-        # take index from metaDatabase
-        # take A3 from distributionDatabases using index
-        # compute histogram based on A3
+            ax.plot(self.dist_databases[feature_name][int(index)], alpha = 0.3, linewidth = 1)
 
-        # print histogram to Screenshots
+            plt.xlabel("Bins")
+            plt.ylabel(f"Distribution variable")
+            plt.tight_layout()
+            plt.savefig(self.log_save_folder + "\\" + feature_name + "_" + mesh_category + ".png", dpi=300)
+            plt.close()
 
-        # pick a very different shape
-
-        # Within a catgory, plot all histograms on top of ach othr: 
-        # To s how similar thy ar.
-        # similar within a class: liklihood you will gt th rihgt catgory high
-        # similarity btwn classs: liklihood that you will gt a diffrnt catgory highr
-        # mak sur to hav nough bins
-        # for all classs
 
 ft = featureTester()
 ft.testFeatureExtraction()
