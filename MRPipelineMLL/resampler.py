@@ -127,7 +127,6 @@ class resampler_pymeshlab():
             mesh.meshing_isotropic_explicit_remeshing(iterations=1)
         return mesh
 
-
     # simplify a mesh to have a certain amount of vertices
     def simplify_by_decimation(self, mesh, max_vertices):
         while mesh.current_mesh().vertex_number() > max_vertices:
