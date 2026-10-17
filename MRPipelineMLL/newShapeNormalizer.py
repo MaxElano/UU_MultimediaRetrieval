@@ -177,9 +177,9 @@ class shapeNormalizerOpen3D():
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
         config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
 
-og_path = "Data\\Small\\OriginalShapeDatabase"
-middle_path = "Data\\Small\\PreprocessedShapeDatabase"
-new_path = "Data\\Small\\NormalizedShapeDatabase"
+og_path = "Data\\OriginalShapeDatabase"
+middle_path = "Data\\PreprocessedShapeDatabase"
+new_path = "Data\\NormalizedShapeDatabase"
 pn = preNormalizer()
 #pn.process_all_meshes(og_path, middle_path)
 

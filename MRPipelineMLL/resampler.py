@@ -113,38 +113,36 @@ class resampler_pymeshlab():
     def resample_one_mesh(self, mesh, min = 5000, max = 10000):
         vertex_count = mesh.current_mesh().vertex_number()
         if vertex_count <= min:
-            return self.refine_copied(mesh)
+            return self.refine(mesh)
         elif vertex_count >= max:
-            return self.decimate_copied(mesh)  
+            return self.simplify_by_decimation(mesh)  
         return mesh
 
 
     # refines a mesh so that its number of faces is higher than a given number
-    def refine(self, mesh, min_vertices):
+    def refine(self, mesh, min_vertices = 5000):
+        i = 0 # if too many iterations something is not right
         # checks if the mesh is refined enough- non-manifold meshes sometimes lead to high nr of triangles while vertices stay low, so an extra check is done
-        while mesh.current_mesh().vertex_number() < min_vertices and mesh.current_mesh().face_number() < 100000:
+        while mesh.current_mesh().vertex_number() < min_vertices and i<10:
             # still needs to be tested if this is the best function for it
             mesh.meshing_isotropic_explicit_remeshing(iterations=1)
+            i += 1
         return mesh
 
     # simplify a mesh to have a certain amount of vertices
-    def simplify_by_decimation(self, mesh, max_vertices):
-        while mesh.current_mesh().vertex_number() > max_vertices:
+    def simplify_by_decimation(self, mesh, max_vertices=10000):
+        i=0
+        while mesh.current_mesh().vertex_number() > max_vertices and i<10:
             # still needs to be tested if this is the best function for it
             mesh.meshing_isotropic_explicit_remeshing(iterations=1)
+            i+=1
         return mesh
+
 
     def refine_copied(self, mesh_lowpoly, target_edge_length = 0.02, itrs = 3):
         mesh_lowpoly.meshing_isotropic_explicit_remeshing(
             targetlen=pml.PureValue(target_edge_length), iterations=itrs)
 
-
     def decimate_copied(self, mesh_highpoly, target_edge_length = 0.02, itrs = 3):
         mesh_highpoly.meshing_isotropic_explicit_remeshing(
             targetlen=pml.PureValue(target_edge_length), iterations=itrs)
-
-
-
-#rs = resampler()
-#rs.resample_all(3000, 10000)
-

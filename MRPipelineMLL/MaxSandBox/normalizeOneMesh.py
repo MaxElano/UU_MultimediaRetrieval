@@ -10,11 +10,11 @@ import open3d as o3d
 import time
 from renderer import render_mode
 
-object_path = "House\\D00941.obj"
-new_object_path = "House\\D00941.npz"
-original_mesh_path = "Data\\OriginalShapeDatabase"
-middle_path = "Data\\PreprocessedShapeDatabase"
-new_path = "Data\\NormalizedShapeDatabase"
+object_path = "AquaticAnimal\\m57.obj"
+new_object_path = "AquaticAnimal\\m57.npz"
+original_mesh_path = "Data\\Small\\OriginalShapeDatabase"
+middle_path = "Data\\Small\\PreprocessedShapeDatabase"
+new_path = "Data\\Small\\NormalizedShapeDatabase"
 show = True
 
 
@@ -29,10 +29,12 @@ norm = shapeNormalizerOpen3D()
 
 # pre normalization steps
 original_mesh = config.ml.load_mesh(original_mesh_path + '\\' + object_path, pyMeshLab=True)
+config.lg.log(f"amount of vertices: {original_mesh.current_mesh().vertex_number()}")
 split = object_path.split("\\")
 clas = split[-2]
 name = split[-1]
 preNorm.run_one_mesh(original_mesh, [original_mesh_path, clas, name], middle_path)
+config.lg.log(f"filling holes and remeshing done. new amount of vertices: {original_mesh.current_mesh().vertex_number()}")
 
 # actual normalization
 prenormalized_mesh = config.ml.load_mesh(middle_path + '\\' + new_object_path, open3d=True)
