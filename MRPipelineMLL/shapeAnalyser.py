@@ -2,6 +2,7 @@ import open3d as o3d
 import numpy as np
 import os
 import config
+import utility as util
 
 '''
 A tool that checks all shapes in a database and infers their:
@@ -32,33 +33,10 @@ class shapeAnalyser():
         }
 
 
-        # calculate triangle/quad/other count (doesn;t work <3)
-        triangle_count = 0
-        quad_count = 0
-        with open(file_path, "r") as file:
-            for line in file:
-                if line.startswith("f "):
-                    num_vertices_in_face = len(line.split()) - 1
-                    if num_vertices_in_face == 3:
-                        triangle_count += 1
-                    elif num_vertices_in_face == 4:
-                        quad_count += 1
-        
-        face_type = "mistake"
-        if triangle_count > 0 and quad_count == 0:
-            face_type = "triangles"
-        elif quad_count > 0 and triangle_count == 0:
-            face_type = "quads"
-        elif triangle_count > 0 and quad_count > 0:
-            face_type = "mixed"
-        else:
-            face_type = "other"
-
         row = [
             num_vertices,
             num_faces,
-            bounds,
-            face_type
+            bounds
         ]
 
         return row
@@ -67,21 +45,15 @@ class shapeAnalyser():
                        folder = "Data\\OriginalShapeDatabase"):
         # takes a folder name and analysis all shapes in that folder
         rows = []
-        for shape_class in os.listdir(folder):
-            class_folder = os.path.join(folder, shape_class)
 
-            if not os.path.isdir(class_folder):
-                continue
+        all_files = util.get_all_files(folder)
 
-            # add a row for current object, its class, and the analysis results
-            for file_name in os.listdir(class_folder):
-                if not file_name.lower().endswith(".obj") and file_name.lower().endswith(".npz"):
-                    continue
-
-                file_path = os.path.join(class_folder, file_name)
-                mesh = config.ml.load_mesh(file_path)
-                row = self.analyse_shape(mesh, file_path)
-                rows.append([file_name, shape_class] + row)
+        for path in all_files:
+            _, shape_class, file_name = path
+            file_path = util.get_path(path)
+            mesh = config.ml.load_mesh(file_path, open3d=True)
+            row = self.analyse_shape(mesh, file_path)
+            rows.append([file_name, shape_class] + row)
 
         return rows 
 
@@ -92,9 +64,11 @@ class shapeAnalyser():
         file_path = "Data\\DataAnalysis\\" + file_name
         np.savetxt(file_path, rows, delimiter=",", fmt='%s')
 
-# sa = shapeAnalyser()
 
-# norm_rows = sa.analyse_shapes(folder="Data\\NormalizedDatabase")
+sa = shapeAnalyser()
+config.initialize()
+
+# norm_rows = sa.analyse_shapes(folder="Data\\NormalizedShapeDatabase")
 # sa.save_analysis(norm_rows, file_name = "normalized_data_info.csv")
 
 # rows = sa.analyse_shapes()
