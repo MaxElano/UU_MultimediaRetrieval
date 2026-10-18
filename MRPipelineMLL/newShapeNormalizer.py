@@ -64,7 +64,9 @@ class normalizerMeshValues():
 
 # The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
 class shapeNormalizerOpen3D():
+    
     def __init__(self):
+        self.not_triangle_orientable = 0
         pass
     
     def normalize_all_meshes(self, path_to_database, path_to_new_database):
@@ -85,6 +87,7 @@ class shapeNormalizerOpen3D():
                 
         end = time.time()
         duration = end-start
+        config.lg.log(f"{number_of_files - self.not_triangle_orientable} of objects were triangle orientable")
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
@@ -107,10 +110,11 @@ class shapeNormalizerOpen3D():
         return mesh
 
     def orient_triangles(self, mesh, path):
-        try:
-            mesh = mesh.orient_triangles()
-        except:
-            config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
+        #try:
+        if not mesh.orient_triangles():
+            self.not_triangle_orientable += 1
+        #except:
+        #    config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
 
     def translate_to_barycenter_mesh(self, mesh):
         face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
