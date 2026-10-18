@@ -5,6 +5,7 @@ import config
 import time
 from resampler import resampler
 import utility as util
+import pymeshlab as pml
 
 class normalizerMeshValues():
     def __init__(self, mesh):
@@ -16,8 +17,8 @@ class normalizerMeshValues():
         self.face_areas_reshaped = np.reshape(np.repeat(self.face_areas,3), (self.face_areas.size, 3))
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
-# The best order is translate -> pca -> re-align -> flip -> scale -> remesh
-class shapeNormalizer():
+# The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
+class shapeNormalizerOpen3D():
     def __init__(self):
         self.resampler = resampler()
     
@@ -42,6 +43,9 @@ class shapeNormalizer():
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
+        mesh = self.general_cleanup(mesh)
+        mesh = self.fill_holes(mesh)
+        self.orient_triangles(mesh, object_entry)
         mesh = self.translate_to_barycenter_mesh(mesh)
         mesh = self.resampler.resample_one_mesh(mesh)
         mesh_values = normalizerMeshValues(mesh)
@@ -50,6 +54,25 @@ class shapeNormalizer():
         self.flip_test(mesh_values)
         self.scale_to_unit(mesh_values)
         self.save_mesh(mesh_values, object_entry, path_to_new_database)
+
+    def general_cleanup(self, mesh):
+        mesh = mesh.remove_duplicated_triangles()
+        mesh = mesh.remove_degenerate_triangles()
+        mesh = mesh.remove_duplicated_vertices()
+        mesh = mesh.remove_non_manifold_edges()
+        mesh = mesh.remove_unreferenced_vertices()
+        return mesh
+
+    def fill_holes(self, mesh):
+        mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh).fill_holes().to_legacy()
+        mesh.compute_vertex_normals() #This line solves the duplicate vertices issue, without this loading new mesh has less vertices
+        mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
+        return mesh
+
+    def orient_triangles(self, mesh, path):
+        orientable = mesh.orient_triangles()
+        if (not orientable):
+            config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
 
     def translate_to_barycenter_mesh(self, mesh):
         face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
@@ -119,17 +142,83 @@ class shapeNormalizer():
     def save_mesh(self, mesh_values, object_entry, path_to_new_database):
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
         config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
+
+# The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
+class shapeNormalizerPyMeshLab():
+    def __init__(self):
+        self.resampler = resampler()
     
-    # ==== UTIL ====
+    def normalize_all_meshes(self, path_to_database, path_to_new_database, show_update_every = 0):
+        #show_update_every = 0 equals no updates
+        config.lg.log(f"Starting normalization process at location {path_to_database}")
+        start = time.time()
         
-    def calculate_covariance(coords, weighted_face_centres, axis_idx_1, axis_idx_2, surface_area): 
-        weighted_total = np.sum(coords[:, axis_idx_1 : axis_idx_1 + 1] * weighted_face_centres[:, axis_idx_2 : axis_idx_2 + 1]) # Use one weighted to only include face weight once
-        total = weighted_total / surface_area
-        variance = total / (coords.shape[0] - 1)
-        return variance
+        all_files = util.get_all_files(path_to_database)
+        util.create_folder(path_to_new_database)
+        number_of_files = len(all_files)
+        config.lg.log(f"{number_of_files} objects found")
+        pc = util.progress_printer(number_of_files, show_update_every, "objects normalized")
+
+        for i in range(number_of_files):
+            meshset = config.ml.load_mesh(util.get_path(all_files[i]), pyMeshLab=True)
+            self.run_one_mesh(meshset, all_files[i], path_to_new_database)
+            pc.increment()
+                
+        end = time.time()
+        duration = end-start
+        config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
+        
+    def run_one_mesh(self, meshset, object_entry, path_to_new_database):
+        self.fill_holes(meshset)
+        self.orient_triangles(meshset)
+        self.translate_to_barycenter_mesh(meshset)
+        #mesh = self.resampler.resample_one_mesh(mesh)
+        self.apply_principal_axis(meshset)
+        self.flip_test(meshset)
+        self.scale_to_unit(meshset)
+        self.save_mesh(meshset, object_entry, path_to_new_database)
+        pass
+
+    def fill_holes(self, meshset):
+        config.lg.log("Start checking non manifold edges")
+        meshset.meshing_repair_non_manifold_edges(method='Remove Faces') # 'Remove Faces' or 'Split Vertices'
+        config.lg.log("Start checking non manifold vertices")
+        meshset.meshing_repair_non_manifold_vertices()
+        # Mesh must have edge manifoldness
+        config.lg.log("Start closing holes")
+        meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
+        meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
+
+    def orient_triangles(self, meshset):
+        config.lg.log("Start orienting triangles")
+        meshset.meshing_re_orient_faces_coherently()
+        meshset.meshing_invert_face_orientation(forceflip=False)
+
+    def translate_to_barycenter_mesh(self, meshset):
+        config.lg.log("Start translating to barycenter")
+        measures = meshset.get_geometric_measures()
+        barycenter = measures['shell_barycenter']
+        meshset.compute_matrix_from_translation(traslmethod='XYZ translation', axisx=barycenter[0], axisy=barycenter[1], axisz=barycenter[2])
     
-# config.initialize(skip_renderer=True)
-# sn = shapeNormalizer()
-# original_path = 'Data\\OriginalShapeDataBase'
-# new_path = 'Data\\NormalizedShapeDatabase'
-# sn.normalize_all_meshes(original_path, new_path, show_update_every=100)
+    def apply_principal_axis(self, meshset):
+        config.lg.log("Start applying principal axis")
+        meshset.compute_matrix_by_principal_axis(pointsflag=False)
+    
+    # Use both weighted and unweighted, otherwise the weights might explode the value
+    def flip_test(self, meshset):   
+        config.lg.log("Start flipping test")
+        mesh = meshset.current_mesh()      
+        x = np.sum(np.sign(mesh.face_custom_point_attribute_matrix('center')[:,0:1]) * (mesh.face_custom_point_attribute_matrix('weighted_center')[:,0:1] * mesh.face_custom_point_attribute_matrix('center')[:,0:1]), axis=0)
+        y = np.sum(np.sign(mesh.face_custom_point_attribute_matrix('center')[:,1:2]) * (mesh.face_custom_point_attribute_matrix('weighted_center')[:,1:2] * mesh.face_custom_point_attribute_matrix('center')[:,1:2]), axis=0)
+        z = np.sum(np.sign(mesh.face_custom_point_attribute_matrix('center')[:,2:3]) * (mesh.face_custom_point_attribute_matrix('weighted_center')[:,2:3] * mesh.face_custom_point_attribute_matrix('center')[:,2:3]), axis=0)
+
+        meshset.apply_matrix_flip_or_swap_axis(flipx=x<0, flipy=y<0, flipz=z<0)
+        
+    def scale_to_unit(self, meshset):
+        config.lg.log("Start scaling mesh")
+        meshset.compute_matrix_from_scaling_or_normalization(unitflag=True)
+    
+    def save_mesh(self, meshset, object_entry, path_to_new_database):
+        config.lg.log("Start saving mesh")
+        total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
+        config.ml.save_mesh_numpy(total_path, mesh_vertices=meshset.current_mesh().vertex_matrix(), mesh_triangles=meshset.current_mesh().face_matrix())

@@ -4,6 +4,7 @@ import config
 import os
 import random
 import utility as util
+import pymeshlab as pml
 
 '''
     The meshLoader will convert all path strings to actual meshes and return these
@@ -17,19 +18,31 @@ class meshLoader():
         mesh_list = np.vectorize(self.load_mesh)(mesh_paths)
         return mesh_list
 
-    def load_mesh(self, mesh_path: str) -> o3d.geometry.Geometry:
+    def load_mesh(self, mesh_path: str, open3d=False, pyMeshLab=False) -> o3d.geometry.Geometry:
         if (mesh_path.endswith(".obj")):
-            return self.load_open3d(mesh_path)
+            if (open3d):
+                return self.load_open3d(mesh_path)
+            elif (pyMeshLab):
+                return self.load_pymeshlab(mesh_path)
         elif (mesh_path.endswith(".npz")):
             return self.load_numpy(mesh_path)
         
-        return self.load_open3d(mesh_path)
+        config.lg.log("Invalid file format to load")
+        return
     
     def load_open3d(self, mesh_path):
         mesh = o3d.io.read_triangle_mesh(mesh_path)
         mesh.compute_vertex_normals()
         mesh.compute_triangle_normals(normalized=False) # mind NOT normalized, to calculate face area
         return mesh
+
+    def load_pymeshlab(self, mesh_path):
+        meshset = pml.MeshSet()
+        meshset.load_new_mesh(mesh_path)
+        meshset.compute_scalar_by_aspect_ratio_per_face(metric='Area')
+        meshset.compute_new_custom_point_attribute_per_face(name='center', x_expr='(x0+x1+x2)/3', y_expr='(y0+y1+y2)/3', z_expr='(z0+z1+z2)/3')
+        meshset.compute_new_custom_point_attribute_per_face(name='weighted_center', x_expr='center_x*fq', y_expr='center_y*fq', z_expr='center_z*fq')        
+        return meshset
 
     def load_numpy(self, mesh_path):
         vertices = []
