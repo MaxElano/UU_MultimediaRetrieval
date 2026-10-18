@@ -12,7 +12,7 @@ class preNormalizer():
     holesfixed_meshes = 0
     def __init__(self):
         self.resampler = resampler_pymeshlab()
-        config.initialize()
+        config.initialize(skip_renderer=True)
 
     def process_all_meshes(self, path_to_database="Data\\OriginalShapeDatabase", path_to_new_database="Data\\PreprocessedShapeDatabase"):
         config.lg.log(f"Start fixing holes at location {path_to_database}")
@@ -20,10 +20,12 @@ class preNormalizer():
         
         all_files = util.get_all_files(path_to_database)
         util.create_folder(path_to_new_database)
+        pc = util.progress_printer(len(all_files), 500, "holes filled")
 
         for path in all_files:
             meshset = config.ml.load_mesh(util.get_path(path), pyMeshLab=True)
             self.run_one_mesh(meshset, path, path_to_new_database)
+            pc.increment()
 
         end = time.time()
         duration = end-start
@@ -74,10 +76,12 @@ class shapeNormalizerOpen3D():
         util.create_folder(path_to_new_database)
         number_of_files = len(all_files)
         config.lg.log(f"{number_of_files} objects found")
+        pc = util.progress_printer(number_of_files, 500, "objects normalized")
 
         for file in all_files:
             mesh = config.ml.load_mesh(util.get_path(file), open3d=True)
             self.run_one_mesh(mesh, file, path_to_new_database)
+            pc.increment()
                 
         end = time.time()
         duration = end-start
@@ -104,7 +108,7 @@ class shapeNormalizerOpen3D():
 
     def orient_triangles(self, mesh, path):
         try:
-            mesh.orient_triangles()
+            mesh = mesh.orient_triangles()
         except:
             config.lg.log(f"Not Orientable {'\\'.join(path[1:])} - Orientable: {mesh.is_orientable()} - Watertight: {mesh.is_watertight()} - Self intersect: {mesh.is_self_intersecting()} - Edge manifold: {mesh.is_edge_manifold()} - Vertex manifold: {mesh.is_vertex_manifold()}")
 
@@ -132,10 +136,10 @@ class shapeNormalizerOpen3D():
         # Order the eigenvectors according to the magnitude of their corresponding eigen value
         # (from largest to smallest)
         eigencombined = [(eigenvalues[i], eigenvectors[:, i]) for i in range(3)]
+        
         eigencombined.sort(key=lambda x:x[0], reverse=True)
         eigenvectors = [item[1] for item in eigencombined]
         eigenvalues = [item[0] for item in eigencombined]
-
         # Replace the minor eigen vector with cross product of major and medium (to enforce right-handed reference frame)
         eigenvectors.pop(2)
         eigenvectors.append(np.cross(eigenvectors[0], eigenvectors[1]))
@@ -144,9 +148,11 @@ class shapeNormalizerOpen3D():
     
     def align_to_world_frame(self, mesh_values, eigen_vectors):
         # https://en.wikipedia.org/wiki/Dot_product
-        mesh_values.vertices = np.dot(mesh_values.vertices, eigen_vectors)
-        mesh_values.face_centres = np.dot(mesh_values.face_centres, eigen_vectors)
-        mesh_values.weighted_face_centres = np.dot(mesh_values.weighted_face_centres, eigen_vectors)
+        
+        mesh_values.vertices = np.array([[np.dot(v,eigen_vectors[0]), np.dot(v,eigen_vectors[1]), np.dot(v,eigen_vectors[2])] for v in mesh_values.vertices])
+        mesh_values.face_centres = np.array([[np.dot(v,eigen_vectors[0]), np.dot(v,eigen_vectors[1]), np.dot(v,eigen_vectors[2])] for v in mesh_values.face_centres])
+        mesh_values.weighted_face_centres = np.array([[np.dot(v,eigen_vectors[0]), np.dot(v,eigen_vectors[1]), np.dot(v,eigen_vectors[2])] for v in mesh_values.weighted_face_centres])
+
         #Stop updating other mesh values, as we do not need them anymore (save some performance)
 
     # Use both weighted and unweighted, otherwise the weights might explode the value

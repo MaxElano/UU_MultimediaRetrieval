@@ -247,4 +247,4 @@ config.initialize(skip_renderer=True)
 
 
 ppc = preprocessChecker()
-ppc.compute_all_checks(show_update_every=100, processed_data_path="Data\\NormalizedShapeDatabase\\")    
+ppc.compute_all_checks(show_update_every=100, processed_data_path="Data\\NormalizedSmallShapeDatabase\\")    
