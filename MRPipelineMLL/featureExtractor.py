@@ -13,7 +13,7 @@ class feature_Extractor():
         config.initialize()
 
     # extracts from a given database and stores them in two numpy arrays
-    def extract_features_from_database(self, directory ="Data\\SmallShapeDatabase"):
+    def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
         index = 0
         feature_list = []
         metadata_list = []
@@ -279,7 +279,7 @@ class feature_Extractor():
         return -1
 
     
-        
+config.initialize(skip_renderer=True)    
 
 fe = feature_Extractor()
 

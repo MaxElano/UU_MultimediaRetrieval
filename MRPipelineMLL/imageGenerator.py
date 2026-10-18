@@ -1,6 +1,6 @@
 from renderer import render_mode
 import config
-
+from enum import Enum
 '''
 Use this class to generate screenshots for the report. 
 Max suggestion is to leave all the previous code in, so we can easily generate enormous new list of images when big changes happen.
@@ -33,6 +33,14 @@ Works with multiple meshes at once, but will be inside each other.
 # config.rd.take_screenshot("I\\Want\\Way\\Too\\Many\\Files\\test.png")
 # #config.rd.launch_renderer()
 
+class cameraAngle(Enum): # gives an angle name and position
+    FRONT = (0, 0, 0)
+    BACK = (0, 0, 180)
+    LEFT = (0, 0, 90)
+    RIGHT = (0, 0, -90)
+    TOP = (-90, 0, 0)
+    BOTTOM = (90, 0, 0)
+
 class imageGenerator():
     def __init__(self):
         # Initialize image settings (the same for all images)
@@ -45,25 +53,37 @@ class imageGenerator():
     def generateFromPath(self,
                       paths,  # array where you give the paths
                       location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
-                      title = "screenshot" #title of the screenshot
+                      title = "screenshot", #title of the screenshot
+                      camera_angle = cameraAngle.FRONT
                       ):
         for path in paths:
             mesh = config.ml.load_mesh(path)
             config.rd.add_mesh(mesh, path)
 
-        config.rd.add_world_axis()
-        config.rd.take_screenshot(location + "\\" + title)        
-        # Clear renderer
-        config.rd.remove_all_meshes()
+        self.generateScreenshot(camera_angle, location, title)
 
     def generateFromMesh(self,
                       meshes,  # array where you give the meshes
                       location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
-                      title = "screenshot" #title of the screenshot
+                      title = "screenshot", #title of the screenshot
+                      camera_angle = cameraAngle.FRONT
                       ):
         for mesh in meshes:
             config.rd.add_mesh(mesh, "L")
+
+        self.generateScreenshot(camera_angle, location, title)
+
+    # rotation only rotates the meshes, it doesn't rotate everything!!!!!
+    def generateScreenshot(self,
+                           camera_angle,
+                           location,
+                           title):
         config.rd.add_world_axis()
+        x, y, z = camera_angle.value
+        #config.rd.set_camera_position(camera_angle.value)
+        #config.rd.set_camera_target([0, 0, 0])
+        config.rd.zoom_camera()
+        config.rd.rotate_meshes(x, y, z)
         config.rd.take_screenshot(location + "\\" + title)        
         # Clear renderer
         config.rd.remove_all_meshes()

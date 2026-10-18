@@ -5,6 +5,7 @@ import config
 import time
 from matplotlib import pyplot as plt
 import utility as util
+from enum import Enum
 
 #gejoinked
 class normalizerMeshValues():
@@ -22,7 +23,8 @@ class preprocessChecker():
         pass
     
     def compute_all_checks(self, 
-                           processed_data_path = "Data\\NormalizedShapeDatabase",
+                           unprocessed_data_path = "Data\\OriginalShapeDatabase\\",
+                           processed_data_path = "Data\\NormalizedShapeDatabase\\",
                            output_folder = "Data\\DataAnalysis\\NormalizedDataStatistics", 
                            show_update_every = 0):
         #show_update_every = 0 equals no updates
@@ -30,6 +32,7 @@ class preprocessChecker():
         start = time.time()
         
         all_files = util.get_all_files(processed_data_path)
+        all_original_files = util.get_all_files(unprocessed_data_path)
         util.create_folder(output_folder)
         
         number_of_files = len(all_files)
@@ -39,13 +42,20 @@ class preprocessChecker():
         pa_data = []
         scale_data = []
         remesh_data = []
+        flip_data = []
+
         for i in range(number_of_files):
-            mesh = config.ml.load_mesh(util.get_path(all_files[i]))
-            bc_error, pca_error, scale_error, remesh_error = self.check_mesh(mesh)
+            path = util.get_path(all_files[i])
+            original_path = util.get_path(all_original_files[i])
+            mesh = config.ml.load_mesh(path)
+            original_mesh = config.ml.load_mesh(original_path, open3d=True)
+
+            bc_error, pca_error, scale_error, remesh_error, flip_error = self.check_mesh(mesh, path, original_mesh)
             bc_data.append(bc_error)
             pa_data.append(pca_error)
             scale_data.append(scale_error)
             remesh_data.append(remesh_error)
+            flip_data.append(flip_error)
             if (i > 0):
                 if (i % show_update_every == 0):
                     config.lg.log(f"{i} of {number_of_files} objects checked: {int((i / number_of_files) * 100)}%")
@@ -63,7 +73,10 @@ class preprocessChecker():
         self.plot_histogram(remesh_data, "Vertex Count Error", "Distance from ideal vertex count", 
                             output_folder + "\\vertex_count_error_histogram.png", 
                             median = np.median(remesh_data), average = np.average(remesh_data))
-    
+        self.plot_histogram(flip_data, "Flip Error", "Distance from ideal flipping", 
+                        output_folder + "\\flip_error_histogram.png", 
+                        median = np.median(flip_data), average = np.average(flip_data))
+
         with open(output_folder + "\\error_statistics.txt", "w") as file:
                     file.write("DATABASE ERROR STATISTICS\n")
                     file.write((f"\nMaximum barycenter error: {np.max(bc_data)}" f"(shape: {util.get_path(all_files[np.argmax(bc_data)])})"))
@@ -78,6 +91,9 @@ class preprocessChecker():
                     file.write((f"\n Maximum vertex count error: {np.max(remesh_data)}" f"(shape: {util.get_path(all_files[np.argmax(remesh_data)])})"))
                     file.write(f"\n Average vertex count error: {np.average(remesh_data)}")
                     file.write(f"\n Median vertex count error: {np.median(remesh_data)}")
+                    file.write((f"\n Maximum flip error: {np.max(flip_error)}" f"(shape: {util.get_path(all_files[np.argmax(flip_error)])})"))
+                    file.write(f"\n Average flip error: {np.average(flip_error)}")
+                    file.write(f"\n Median flip error: {np.median(flip_error)}")
 
         end = time.time()
         duration = end-start
@@ -121,13 +137,14 @@ class preprocessChecker():
         plt.savefig(save_path, dpi=300)
         plt.close()
 
-    def check_mesh(self, mesh):
+    def check_mesh(self, mesh, path, original_mesh):
         mesh_values = normalizerMeshValues(mesh)
         bc_error = self.check_barycenter(mesh_values)
         pa_error = self.check_principal_axes(mesh_values)
         scale_error = self.check_scaling(mesh_values)
         remesh_error = self.check_remeshing(mesh_values)
-        return(bc_error, pa_error, scale_error, remesh_error)
+        flip_error = self.check_flip(mesh, path, mesh_values)
+        return(bc_error, pa_error, scale_error, remesh_error, flip_error)
 
     # Check translation of barycenter to origin
     # if not 0 0 0 wrong -> COMPUTE distance to 000
@@ -137,45 +154,35 @@ class preprocessChecker():
         distance = np.linalg.norm(barycenter)
         return distance 
 
-    #TODO: not functional yet: need to unnormalize face areas + get shit together
-    # Check computation of principal axes (no ri)
-    # Check alignment with coordinate frame
-    # Check flip based on moment test
-    # After normalization, recompute the PCA
-    # | e1' * x | = 0 and the same for all coordinates
-    # give the sum (distance from 0)
     def check_principal_axes(self, mesh_values): 
-        #gejoinked thx max
-        xx = self.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 0, 0, mesh_values.surface_area)
-        xy = self.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 0, 1, mesh_values.surface_area)
-        xz = self.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 0, 2, mesh_values.surface_area)
-        yy = self.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 1, 1, mesh_values.surface_area)
-        yz = self.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 1, 2, mesh_values.surface_area)
-        zz = self.calculate_covariance(mesh_values.face_centres, mesh_values.weighted_face_centres, 2, 2, mesh_values.surface_area)
-        covariance_matrix = np.asarray([[xx, xy, xz]
-                                       ,[xy, yy, yz]
-                                       ,[xz, yz, zz]])
-        eigen_values, eigen_vectors = np.linalg.eig(covariance_matrix)
-        
-        order = np.argsort(eigen_values)[::-1]
-        eigen_vectors = eigen_vectors[:, order]
+        #gejoinked idk of dit werkt maar fuck it we ball?
+        # Code from example on Teams
+        cov = np.cov(mesh_values.weighted_face_centres.transpose())
 
+        # Compute eigen vectors and eigen values of covariance matrix
+        # The eigen vectors are the columns of the returned 2d-array
+        eigenvalues, eigenvectors = np.linalg.eig(cov)
+
+        # Order the eigenvectors according to the magnitude of their corresponding eigen value
+        # (from largest to smallest)
+        eigencombined = [(eigenvalues[i], eigenvectors[:, i]) for i in range(3)]
+        eigencombined.sort(key=lambda x:x[0], reverse=True)
+        eigenvectors = [item[1] for item in eigencombined]
+        eigenvalues = [item[0] for item in eigencombined]
+
+        # Replace the minor eigen vector with cross product of major and medium (to enforce right-handed reference frame)
+        eigenvectors.pop(2)
+        eigenvectors.append(np.cross(eigenvectors[0], eigenvectors[1]))
 
         # define upstairs~!
         # deze functie is episch
         world_axes = np.eye(3)
 
         alignment_error = np.sqrt(
-            (1 - abs(np.dot(eigen_vectors[:,0], world_axes[0])))**2 +
-            (1 - abs(np.dot(eigen_vectors[:,1], world_axes[1])))**2 +
-            (1 - abs(np.dot(eigen_vectors[:,2], world_axes[2])))**2
+            (1 - abs(np.dot(eigenvectors[0], world_axes[0])))**2 +
+            (1 - abs(np.dot(eigenvectors[1], world_axes[1])))**2 +
+            (1 - abs(np.dot(eigenvectors[2], world_axes[2])))**2
         )
-        #alignment = np.array([
-        #    abs(np.dot(eigen_vectors[0], x)),
-        #    abs(np.dot(eigen_vectors[1], y)),
-        #    abs(np.dot(eigen_vectors[2], z))
-        #])
-        # alignment_error = np.sum(1-alignment)
 
         return alignment_error
 
@@ -196,7 +203,38 @@ class preprocessChecker():
         ideal_vertices = 10000
         vertex_error = abs(len(mesh_values.vertices) - ideal_vertices)
         return vertex_error
-    
+
+    def check_flip(self, mesh_values):
+        # give back flip error: was it flipped correctly?
+        x = np.sum(np.sign(mesh_values.face_centres[:,0:1]) * (mesh_values.weighted_face_centres[:,0:1] * mesh_values.face_centres[:,0:1]), axis=0)
+        y = np.sum(np.sign(mesh_values.face_centres[:,1:2]) * (mesh_values.weighted_face_centres[:,1:2] * mesh_values.face_centres[:,1:2]), axis=0)
+        z = np.sum(np.sign(mesh_values.face_centres[:,2:3]) * (mesh_values.weighted_face_centres[:,2:3] * mesh_values.face_centres[:,2:3]), axis=0)
+
+        flip_error = (np.sign(x)<0).astype(int) + (np.sign(y)<0).astype(int) + (np.sign(z)<0).astype(int)
+        # TODO: give back if flipped
+        return flip_error
+
+    def holes_log(self,
+                    mesh,
+                    original_mesh):
+        # how many holes, how many succeeded
+        now_watertight = mesh.is_watertight()
+        was_watertight = original_mesh.is_watertight()
+        if now_watertight and was_watertight:
+            return "watertight", []
+        elif now_watertight and not was_watertight:
+            return "fixed", [original_mesh, mesh]
+        elif not now_watertight and not was_watertight:
+            return "not fixed", [original_mesh, mesh]
+
+        return "fucked up", mesh
+
+    def flip_log(self, mesh, original_mesh, mesh_values):
+        pass
+    # give some examples
+
+    # orienting: all inside of outside
+
     # ==== UTIL ====
         
     def calculate_covariance(self, coords, weighted_face_centres, axis_idx_1, axis_idx_2, surface_area): 
@@ -205,7 +243,8 @@ class preprocessChecker():
         variance = total / (coords.shape[0] - 1)
         return variance
 
-# config.initialize(skip_renderer=True)
+config.initialize(skip_renderer=True)
 
-# ppc = preprocessChecker()
-# ppc.compute_all_checks(show_update_every=500, processed_data_path="Data\\NormalizedDatabase\\")    
+
+ppc = preprocessChecker()
+ppc.compute_all_checks(show_update_every=100, processed_data_path="Data\\NormalizedShapeDatabase\\")    

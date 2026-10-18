@@ -7,6 +7,7 @@ import utility as util
 from enum import Enum
 from featureExtractor import feature_Extractor
 from imageGenerator import imageGenerator
+from imageGenerator import cameraAngle
 
 class extremity(Enum):
     MAX = 1

@@ -144,7 +144,6 @@ class shapeNormalizerOpen3D():
     
     def align_to_world_frame(self, mesh_values, eigen_vectors):
         # https://en.wikipedia.org/wiki/Dot_product
-        
         mesh_values.vertices = np.dot(mesh_values.vertices, eigen_vectors)
         mesh_values.face_centres = np.dot(mesh_values.face_centres, eigen_vectors)
         mesh_values.weighted_face_centres = np.dot(mesh_values.weighted_face_centres, eigen_vectors)

@@ -163,6 +163,20 @@ class renderer():
                     np.vectorize(visualizer.add_geometry)(self.all_meshes)
         visualizer.set_view_status(view_status)
 
+    def rotate_meshes(self, x=0, y=0, z=0):
+        view_status = self.visualizer.get_view_status()
+        for mesh in self.all_meshes:
+            R = mesh.get_rotation_matrix_from_xyz((
+                np.radians(x),
+                np.radians(y),
+                np.radians(z)
+            )) 
+            mesh.rotate(R, center=(0,0,0))
+        self.visualizer.set_view_status(view_status)
+
+    def zoom_camera(self, zoom=0.55):
+        ctr = self.visualizer.get_view_control()
+        ctr.set_zoom(zoom)
 
     # ==== Animation Functions ====
     # Used with keybind
