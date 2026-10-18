@@ -3,6 +3,7 @@ from renderer import render_mode
 import config
 import os
 import pymeshlab  as pml
+from imageGenerator import imageGenerator
 
 
 '''
@@ -110,39 +111,68 @@ class resampler_pymeshlab():
     def __init__(self):
         pass
 
-    def resample_one_mesh(self, mesh, min = 5000, max = 10000):
+    def resample_one_mesh(self, mesh, min = 5000, max = 15000):
         vertex_count = mesh.current_mesh().vertex_number()
-        if vertex_count <= min:
-            return self.refine(mesh)
+        if vertex_count <= min:     
+            return self.refine(mesh, min)
         elif vertex_count >= max:
-            return self.simplify_by_decimation(mesh)  
+            return self.simplify_by_decimation(mesh, max)  
         return mesh
 
 
     # refines a mesh so that its number of faces is higher than a given number
-    def refine(self, mesh, min_vertices = 5000):
-        i = 0 # if too many iterations something is not right
+    def refine(self, mesh, min_vertices):
+        target_edge_length = 0.02
         # checks if the mesh is refined enough- non-manifold meshes sometimes lead to high nr of triangles while vertices stay low, so an extra check is done
-        while mesh.current_mesh().vertex_number() < min_vertices and i<10:
+        while mesh.current_mesh().vertex_number() < min_vertices and target_edge_length > 0:
             # still needs to be tested if this is the best function for it
-            mesh.meshing_isotropic_explicit_remeshing(iterations=1)
-            i += 1
+            mesh.meshing_isotropic_explicit_remeshing(targetlen=pml.PureValue(target_edge_length), iterations=1)
+            target_edge_length -= 0.002
         return mesh
 
     # simplify a mesh to have a certain amount of vertices
-    def simplify_by_decimation(self, mesh, max_vertices=10000):
-        i=0
-        while mesh.current_mesh().vertex_number() > max_vertices and i<10:
-            # still needs to be tested if this is the best function for it
-            mesh.meshing_isotropic_explicit_remeshing(iterations=1)
-            i+=1
+    def simplify_by_decimation(self, mesh, max_vertices):
+        # try isotropic remeshing first as it remeshes more evenly
+        mesh.meshing_isotropic_explicit_remeshing(targetlen=pml.PureValue(0.01), iterations=1)                  
+        while mesh.current_mesh().vertex_number() > max_vertices:
+            mesh.meshing_decimation_quadric_edge_collapse()  
         return mesh
 
+    # function to showcase resampled models (only valid if preprocess is done)
+    def render_before_after(self, meshpath, newmeshpath):
+        config.initialize()
+        # for actual remeshing
+        meshset = config.ml.load_mesh(meshpath, pyMeshLab=True)
+        self.resample_one_mesh(meshset)
+        config.ml.save_mesh_numpy(newmeshpath, mesh_vertices=meshset.current_mesh().vertex_matrix(), mesh_triangles=meshset.current_mesh().face_matrix())
 
-    def refine_copied(self, mesh_lowpoly, target_edge_length = 0.02, itrs = 3):
-        mesh_lowpoly.meshing_isotropic_explicit_remeshing(
-            targetlen=pml.PureValue(target_edge_length), iterations=itrs)
 
-    def decimate_copied(self, mesh_highpoly, target_edge_length = 0.02, itrs = 3):
-        mesh_highpoly.meshing_isotropic_explicit_remeshing(
-            targetlen=pml.PureValue(target_edge_length), iterations=itrs)
+        # for visualization
+        mesh_before = config.ml.load_mesh(meshpath, open3d=True)
+        print(mesh_before)        
+
+        mesh_after = config.ml.load_mesh(newmeshpath, open3d=True)
+        print(mesh_after)
+
+        # Render mesh
+        config.rd.set_render_mode(render_mode.NORMAL)
+        config.rd.add_world_axis()
+        config.rd.add_mesh(mesh_before, meshpath)
+        config.rd.add_mesh(mesh_after.translate((2, 0, 0)), newmeshpath)
+        config.rd.launch_renderer()
+
+'''
+img = imageGenerator()
+config.initialize()
+rs = resampler_pymeshlab()
+newmeshpath = "Data\\Test\\D00863.npz" 
+meshpath = "Data\\OriginalShapeDatabase\\Motorcycle\\D00886.obj"
+rs.render_before_after(meshpath, newmeshpath)
+
+mesh_before = config.ml.load_mesh(meshpath, open3d=True)
+print(mesh_before)  
+    
+mesh_after = config.ml.load_mesh(newmeshpath, open3d=True)
+print(mesh_after)
+img.generateFromMesh([mesh_after.translate((1, 0, 0)), mesh_before], title="remesh")
+'''

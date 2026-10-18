@@ -27,7 +27,7 @@ class preNormalizer():
 
         end = time.time()
         duration = end-start
-        config.lg.log(f"fixed holes in {self.holesfixed_meshes}/{len(all_files)} objects in {round(duration / 60, 2) } minutes")
+        config.lg.log(f"Remeshing done. Fixed holes in {self.holesfixed_meshes}/{len(all_files)} objects in {round(duration / 60, 2) } minutes")
      
 
     def run_one_mesh(self, meshset, path, new_path):
@@ -181,7 +181,7 @@ og_path = "Data\\OriginalShapeDatabase"
 middle_path = "Data\\PreprocessedShapeDatabase"
 new_path = "Data\\NormalizedShapeDatabase"
 pn = preNormalizer()
-#pn.process_all_meshes(og_path, middle_path)
+pn.process_all_meshes(og_path, middle_path)
 
 sn = shapeNormalizerOpen3D()
-#sn.normalize_all_meshes(middle_path, new_path)
+sn.normalize_all_meshes(middle_path, new_path)
