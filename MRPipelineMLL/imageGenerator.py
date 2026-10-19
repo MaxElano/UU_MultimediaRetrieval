@@ -1,6 +1,7 @@
 from renderer import render_mode
 import config
 from enum import Enum
+import open3d as o3d
 '''
 Use this class to generate screenshots for the report. 
 Max suggestion is to leave all the previous code in, so we can easily generate enormous new list of images when big changes happen.
@@ -72,6 +73,18 @@ class imageGenerator():
             config.rd.add_mesh(mesh, "L")
 
         self.generateScreenshot(camera_angle, location, title)
+    
+    def generateFromArrays(self,
+                          vertices,  # array where you give the meshes
+                          faces,
+                          location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
+                          title = "screenshot", #title of the screenshot
+                          camera_angle = cameraAngle.FRONT
+                          ):
+        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
+        config.rd.add_mesh(mesh, "L")
+    
+        self.generateScreenshot(camera_angle, location, title)
 
     # rotation only rotates the meshes, it doesn't rotate everything!!!!!
     def generateScreenshot(self,
@@ -82,8 +95,8 @@ class imageGenerator():
         x, y, z = camera_angle.value
         #config.rd.set_camera_position(camera_angle.value)
         #config.rd.set_camera_target([0, 0, 0])
-        config.rd.zoom_camera()
-        config.rd.rotate_meshes(x, y, z)
+        #config.rd.zoom_camera()
+        #config.rd.rotate_meshes(x, y, z)
         config.rd.take_screenshot(location + "\\" + title)        
         # Clear renderer
         config.rd.remove_all_meshes()

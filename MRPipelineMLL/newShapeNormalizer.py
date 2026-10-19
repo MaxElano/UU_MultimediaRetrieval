@@ -6,13 +6,15 @@ import time
 from resampler import resampler_pymeshlab
 import utility as util
 import pymeshlab as pml
+from imageGenerator import imageGenerator 
 
 # responsible for fixing holes and remeshing using pymeshlab
 class preNormalizer():
+    ig = imageGenerator()
+    
     holesfixed_meshes = 0
     def __init__(self):
         self.resampler = resampler_pymeshlab()
-        config.initialize(skip_renderer=True)
 
     def process_all_meshes(self, path_to_database="Data\\OriginalShapeDatabase", path_to_new_database="Data\\PreprocessedShapeDatabase"):
         config.lg.log(f"Start fixing holes at location {path_to_database}")
@@ -33,8 +35,12 @@ class preNormalizer():
      
 
     def run_one_mesh(self, meshset, path, new_path):
+        location = f"Data\\Screenshots\\AllMeshes\\{path[1]}\\{path[2].split(".")[0]}"
+        self.ig.generateFromArrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "00_original") 
         self.fill_holes(meshset)
+        self.ig.generateFromArrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "01_holes_filled") 
         self.resampler.resample_one_mesh(meshset) 
+        self.ig.generateFromArrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "02_resampled") 
         self.save_mesh(meshset, path, new_path)  
 
     def fill_holes(self, meshset):
@@ -64,6 +70,7 @@ class normalizerMeshValues():
 
 # The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
 class shapeNormalizerOpen3D():
+    ig = imageGenerator()
     
     def __init__(self):
         self.not_triangle_orientable = 0
@@ -91,14 +98,27 @@ class shapeNormalizerOpen3D():
         config.lg.log(f"Finished normalization of all {number_of_files} objects in {round(duration / 60, 2) } minutes")
         
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
+        location = f"Data\\Screenshots\\AllMeshes\\{object_entry[1]}\\{object_entry[2].split(".")[0]}"
         mesh = self.general_cleanup(mesh)
+        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up") 
+        
         self.orient_triangles(mesh, object_entry)
+        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces") 
+        
         mesh = self.translate_to_barycenter_mesh(mesh)
+        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated") 
+        
         mesh_values = normalizerMeshValues(mesh)
         eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
+        self.ig.generateFromArrays(mesh_values.vertices, mesh_values.triangles, location, "06_aligned_world_axis") 
+        
         self.flip_test(mesh_values)
+        self.ig.generateFromArrays(mesh_values.vertices, mesh_values.triangles, location, "07_flipped")
+        
         self.scale_to_unit(mesh_values)
+        self.ig.generateFromArrays(mesh_values.vertices, mesh_values.triangles, location, "08_scaled")
+        
         self.save_mesh(mesh_values, object_entry, path_to_new_database)
 
     def general_cleanup(self, mesh):
@@ -189,8 +209,12 @@ class shapeNormalizerOpen3D():
 og_path = "Data\\OriginalShapeDatabase"
 middle_path = "Data\\PreprocessedShapeDatabase"
 new_path = "Data\\NormalizedShapeDatabase"
-pn = preNormalizer()
-pn.process_all_meshes(og_path, middle_path)
+
+config.initialize(skip_renderer=False)
+config.lg.set_to_write()
+
+#pn = preNormalizer()
+#pn.process_all_meshes(og_path, middle_path)
 
 sn = shapeNormalizerOpen3D()
 sn.normalize_all_meshes(middle_path, new_path)
