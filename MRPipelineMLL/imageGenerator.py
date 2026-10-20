@@ -102,7 +102,7 @@ class imageGenerator():
                           show_face_normals = False
                           ):
         mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
-        self.generateFromMesh([mesh], location, title, camera_angle, show_face_normals)
+        self.generateFromMesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
     
     # rotation only rotates the meshes, it doesn't rotate everything!!!!!
     def generateScreenshot(self,
