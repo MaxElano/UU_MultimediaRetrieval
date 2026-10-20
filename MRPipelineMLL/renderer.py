@@ -68,7 +68,7 @@ class renderer():
                  mesh,
                  label
     ):
-        config.lg.log(label)
+        #config.lg.log(label)
         
         mesh.paint_uniform_color(self.mesh_color)
         self.all_meshes.append(mesh)
@@ -92,6 +92,7 @@ class renderer():
         self.all_meshes = []
         self.all_wireframes = []
         self.visualizer.clear_geometries()
+        self.visualizer.reset_view_point()
 
     # Generate wireframe of SINGLE mesh
     def generate_wireframe(mesh, label):

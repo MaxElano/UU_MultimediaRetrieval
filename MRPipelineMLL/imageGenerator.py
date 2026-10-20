@@ -2,6 +2,7 @@ from renderer import render_mode
 import config
 from enum import Enum
 import open3d as o3d
+import numpy as np
 '''
 Use this class to generate screenshots for the report. 
 Max suggestion is to leave all the previous code in, so we can easily generate enormous new list of images when big changes happen.
@@ -67,9 +68,27 @@ class imageGenerator():
                       meshes,  # array where you give the meshes
                       location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                       title = "screenshot", #title of the screenshot
-                      camera_angle = cameraAngle.FRONT
+                      camera_angle = cameraAngle.FRONT,
+                      show_face_normals = False
                       ):
         for mesh in meshes:
+            if show_face_normals:
+                mesh = mesh.compute_triangle_normals(normalized=False)
+                face_centres = np.average(np.asarray(mesh.vertices)[mesh.triangles], axis=1)
+                normals = mesh.triangle_normals
+                arrows = []
+                for i in range(len(face_centres)):
+                    a = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius = 0.5, cone_radius=0.7, cylinder_height=2.0, cone_height=1.0)
+                    v = np.cross(normals[i], [0,0,1])
+                    c = np.dot(normals[i], [0,0,1])
+                    s = np.linalg.norm(v)
+                    kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+                    rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+                    a.rotate(rotation_matrix, [0,0,0])
+                    a.translate(face_centres[i])
+                    arrows.append(a)
+                    config.rd.add_meshes(arrows, "L")
+                
             config.rd.add_mesh(mesh, "L")
 
         self.generateScreenshot(camera_angle, location, title)
@@ -79,13 +98,12 @@ class imageGenerator():
                           faces,
                           location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                           title = "screenshot", #title of the screenshot
-                          camera_angle = cameraAngle.FRONT
+                          camera_angle = cameraAngle.FRONT,
+                          show_face_normals = False
                           ):
         mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
-        config.rd.add_mesh(mesh, "L")
+        self.generateFromMesh([mesh], location, title, camera_angle, show_face_normals)
     
-        self.generateScreenshot(camera_angle, location, title)
-
     # rotation only rotates the meshes, it doesn't rotate everything!!!!!
     def generateScreenshot(self,
                            camera_angle,

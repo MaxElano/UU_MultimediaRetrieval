@@ -12,7 +12,9 @@ from imageGenerator import imageGenerator
 class preNormalizer():
     ig = imageGenerator()
     
-    holesfixed_meshes = 0
+    meshes_changed_by_holes = 0
+    same_edges = 0
+    crash = 0
     def __init__(self):
         self.resampler = resampler_pymeshlab()
 
@@ -31,7 +33,7 @@ class preNormalizer():
 
         end = time.time()
         duration = end-start
-        config.lg.log(f"Remeshing done. Fixed holes in {self.holesfixed_meshes}/{len(all_files)} objects in {round(duration / 60, 2) } minutes")
+        config.lg.log(f"Remeshing done. Changed holes in {self.meshes_changed_by_holes}/{len(all_files)} objects. Did nothing in {self.same_edges}/{len(all_files)} objects. Crashed in {self.crash}/{len(all_files)} objects. Run time: {round(duration / 60, 2) } minutes")
      
 
     def run_one_mesh(self, meshset, path, new_path):
@@ -46,12 +48,20 @@ class preNormalizer():
     def fill_holes(self, meshset):
         #meshset.meshing_repair_non_manifold_edges(method='Remove Faces') COULD STILL BE AN OPTION AT SOME POINT
         meshset.meshing_repair_non_manifold_vertices()
+        
         # Mesh must have edge manifoldness
+        prevcount = meshset.current_mesh().edge_number() 
         try:
             meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
-            self.holesfixed_meshes +=1
         except:
-            pass
+            self.crash += 1
+        aftercount = meshset.current_mesh().edge_number() 
+        
+        if (prevcount != aftercount):
+            self.meshes_changed_by_holes += 1
+        if (prevcount == aftercount):
+            self.same_edges += 1
+
 
     def save_mesh(self, meshset, object_entry, path_to_new_database):
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
@@ -68,7 +78,6 @@ class normalizerMeshValues():
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
 
-# The best order is reorient triangles -> fill holes -> translate -> pca -> re-align -> flip -> scale -> remesh
 class shapeNormalizerOpen3D():
     ig = imageGenerator()
     
@@ -99,11 +108,11 @@ class shapeNormalizerOpen3D():
         
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
         location = f"Data\\Screenshots\\AllMeshes\\{object_entry[1]}\\{object_entry[2].split(".")[0]}"
-        mesh = self.general_cleanup(mesh)
-        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up") 
+        #mesh = self.general_cleanup(mesh)
+        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up", show_face_normals=True) 
         
         self.orient_triangles(mesh, object_entry)
-        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces") 
+        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces", True) 
         
         mesh = self.translate_to_barycenter_mesh(mesh)
         self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated") 
