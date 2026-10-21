@@ -1,5 +1,6 @@
 from enum import Enum
 import datetime
+import utility as util
 
 '''
     We will use the logger instead of normal print() statements, in order to have control about the location it is printing to. 
@@ -13,8 +14,12 @@ class log_mode(Enum):
 class logger:
     mode = log_mode.PRINT
     holding_logs = []
+    log_name = "Log1"
     
     def __init__(self, mode = log_mode.PRINT):
+        logs = util.get_all_files("Logs")
+        if len(logs) > 0:
+            self.log_name = "Log" + str(int(logs[-1].split("Log")[-1]) + 1)
         self.mode = mode
     
     def set_to_print(self):
@@ -43,7 +48,7 @@ class logger:
         print(text)
     
     def write(self, text: str):
-        with open("Log", "a") as file:
+        with open(f"Logs\\{self.log_name}", "a") as file:
             file.write(text + '\n')
     
     def custom_print(self, text: str):

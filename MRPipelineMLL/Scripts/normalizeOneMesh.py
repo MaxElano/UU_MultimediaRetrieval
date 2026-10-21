@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
 #from shapeNormalizer import shapeNormalizerPyMeshLab
-from newShapeNormalizer import preNormalizer
-from newShapeNormalizer import shapeNormalizerOpen3D
+from shapeNormalizer import preNormalizer
+from shapeNormalizer import shapeNormalizerOpen3D
 import config
 import open3d as o3d
 import time
