@@ -2,12 +2,9 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import shapeNormalizerPyMeshLab
-import config
-import open3d as o3d
+import Utility.config as config
 import time
-from renderer import render_mode
-import utility as util
+import Utility.utility as util
 
 original_mesh_path = "Data\\OriginalShapeDatabase"
 number_of_fucked = 0
@@ -20,7 +17,7 @@ start = time.time()
 all_files = util.get_all_files(original_mesh_path)
 number_of_files = len(all_files)
 config.lg.log(f"{number_of_files} objects found")
-pc = util.progress_printer(number_of_files, 250, "objects checked")
+pc = util.ProgressCounter(number_of_files, 250, "objects checked")
 
 for i in range(number_of_files):
     meshset = config.ml.load_mesh(util.get_path(all_files[i]), pyMeshLab=True)

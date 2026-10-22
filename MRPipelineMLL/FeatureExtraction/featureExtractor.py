@@ -1,18 +1,21 @@
-import numpy as np
+import sys
 import os
-import open3d as o3d
-import config
-from renderer import render_mode
-import utility as util
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
+import numpy as np
+import Utility.config as config
+import Utility.utility as util
+from renderer import RenderMode
 import time
 import random
+import math
 
-class feature_Extractor():
+class FeatureExtractor():
     def __init__(self):
         config.initialize()
 
     # extracts from a given database and stores them in two numpy arrays
-    def extract_features_from_database(self, directory ="Data\\SmallShapeDatabase"):
+    def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
         index = 0
         feature_list = []
         metadata_list = []
@@ -51,8 +54,6 @@ class feature_Extractor():
         end = time.time()
         config.lg.log(f"Finished feature extraction for {index} objects in {round(((end-start)) / 60, 2) } minutes")
       
-
-
     # extracts all features of an objects and saves them as tuple
     def extract_global_features(self, mesh, index):
         vertices = np.asarray(mesh.vertices)
@@ -87,14 +88,23 @@ class feature_Extractor():
     # angle between 3 random vertices
     def A3(self, vertices, samples, bins):
         angles = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 3)
-            v1 = rvs[0] -rvs[1]
-            v2 = rvs[2] -rvs[1]
-            v1_u = v1 / np.linalg.norm(v1)
-            v2_u = v2 / np.linalg.norm(v2)
-            # adds angle in radians, for degrees use np.degrees(angle)
-            angles.append(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+        k = math.ceil(pow(samples, 1.0/3.0))
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                for c in range(k):
+                    vc = random.choice(vertices)
+                    if np.array_equal(va, vc) or np.array_equal(vb, vc):          # do not allow duplicates
+                        continue
+                    v1 = va -vb
+                    v2 = vc -vb
+                    v1_u = v1 / np.linalg.norm(v1)
+                    v2_u = v2 / np.linalg.norm(v2)
+                    # adds angle in radians, for degrees use np.degrees(angle)
+                    angles.append(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))            
         return self.distribute_values(angles, bins)
     
     # distance between barycenter and random vertex
@@ -104,37 +114,64 @@ class feature_Extractor():
             rvs.append(random.choice(vertices))
         distances = np.linalg.norm(rvs, axis=1)
         return self.distribute_values(distances, bins)
-        
+
     # distance between 2 random vertices
     def D2(self, vertices, samples, bins):
         vectors = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 2)
-            vectors.append(rvs[0] - rvs [1])
+        k = int(pow(samples, 1.0/2.0))  #compute number of samples along 2 dimensions
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                vectors.append(va - vb)
         distances = np.linalg.norm(vectors, axis=1)
         return self.distribute_values(distances, bins)
 
     # square root of area of triangle given by 3 random vertices
     def D3(self, vertices, samples, bins):
         normals = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 3)
-            v1 = rvs[0] -rvs[1]
-            v2 = rvs[2] -rvs[1]
-            normals.append(np.cross(v1, v2))
+        k = math.ceil(pow(samples, 1.0/3.0))
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                for c in range(k):
+                    vc = random.choice(vertices)
+                    if np.array_equal(va, vc) or np.array_equal(vb, vc):          # do not allow duplicates
+                        continue
+                    v1 = va -vb
+                    v2 = vc -vb
+                    normals.append(np.cross(v1, v2))
         areas = np.linalg.norm(normals, axis=1) / 2
         return self.distribute_values(np.sqrt(areas), bins)
 
     # cube root of volume of tetrahedron formed by 4 random vertices 
     def D4(self, vertices, samples, bins):
         volumes = []
-        for i in range(samples):
-            rvs = self.random_vertices(vertices, 4)
-            # vertices of base triangle, translated by last point so its at
-            v1 = rvs[1]-rvs[0]
-            v2 = rvs[2]-rvs[0]
-            v3 = rvs[3]-rvs[0]
-            volumes.append(np.dot(np.cross(v1, v2), v3)/6)
+        k = int(pow(samples, 1.0/4.0))
+        for a in range(k):
+            va = random.choice(vertices)
+            for b in range(k):
+                vb = random.choice(vertices)
+                if np.array_equal(va, vb):          # do not allow duplicates
+                    continue
+                for c in range(k):
+                    vc = random.choice(vertices)
+                    if np.array_equal(va, vc) or np.array_equal(vb, vc):       
+                        continue
+                    for d in range(k):
+                        vd = random.choice(vertices)
+                        if np.array_equal(va, vd) or np.array_equal(vb, vd) or np.array_equal(vc, vd):   
+                            continue
+                        # vertices of base triangle, translated by last point so its at
+                        v1 = vb-va
+                        v2 = vc-va
+                        v3 = vd-va
+                        volumes.append(np.dot(np.cross(v1, v2), v3)/6)
         return self.distribute_values(np.cbrt(volumes), bins)
 
     # returns the specified amount of unique vertices
@@ -144,17 +181,11 @@ class feature_Extractor():
         for i in indices:
             results.append(vertices[i])
         return results
-
+  
     def distribute_values(self, values, bin_amount):
-        if np.any(np.isnan(values)):
-            print("found nan value in a computation")
-            filtered_vals = [x for x in values if x == x]
-            hist, bins = np.histogram(filtered_vals, bins=bin_amount)
-        else:
-            hist, bins = np.histogram(values, bins=bin_amount)
+        hist, _ = np.histogram(values, bins=bin_amount)
         return hist
     
-   
     def volume(self, vertices, triangles):
         vol = 0
         for t in triangles:
@@ -213,7 +244,7 @@ class feature_Extractor():
         print(convex_hull)
 
         # Render mesh
-        config.rd.set_render_mode(render_mode.NORMAL)
+        config.rd.set_render_mode(RenderMode.NORMAL)
         #config.rd.show_world_axis(True)
         config.rd.add_mesh(mesh, meshpath)
         config.rd.add_mesh(convex_hull.translate((2, 0, 0)), meshpath)
@@ -226,15 +257,14 @@ class feature_Extractor():
         mesh = config.ml.load_mesh(meshpath)
         features = np.load("Data\\DataAnalysis\\featureDatabase.npy")
         meta_data = np.load("Data\\DataAnalysis\\metaDatabase.npy")
-        distributions = np.load("Data\\DataAnalysis\\metaDatabase.npz")
+        #distributions = np.load("Data\\DataAnalysis\\metaDatabase.npz")
 
         mesh_index = self.get_mesh_index(filename, meta_data)
         if mesh_index < 0:
             features = self.extract_global_features(mesh, -1)
-            distributions = self.extract_distribution_features(mesh, -1)
-        else:
+            #distributions = self.extract_distribution_features(mesh, -1) #??? Does nothing no? At least assigning
+        else: 
             features = features[mesh_index]
-
 
         return mesh, features
 
@@ -245,10 +275,8 @@ class feature_Extractor():
                 return int(row[0])
         return -1
 
-    
-        
+# config.initialize(skip_renderer=True)    
 
-fe = feature_Extractor()
+# fe = FeatureExtractor()
 
-fe.extract_features_from_database()
-
+# fe.extract_features_from_database()

@@ -3,12 +3,11 @@ import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
 #from shapeNormalizer import shapeNormalizerPyMeshLab
-from newShapeNormalizer import preNormalizer
-from newShapeNormalizer import shapeNormalizerOpen3D
-import config
-import open3d as o3d
+from Normalizer.normalizer import PreNormalizer
+from Normalizer.normalizer import ShapeNormalizerOpen3D
+import Utility.config as config
 import time
-from renderer import render_mode
+from renderer import RenderMode
 
 object_path = "AquaticAnimal\\m57.obj"
 new_object_path = "AquaticAnimal\\m57.npz"
@@ -23,8 +22,8 @@ config.initialize(skip_renderer=not show)
 config.lg.set_to_print()
 config.lg.log("Starting one normalization")
 #o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enjoying warnings
-preNorm = preNormalizer()
-norm = shapeNormalizerOpen3D()
+preNorm = PreNormalizer()
+norm = ShapeNormalizerOpen3D()
 
 
 # pre normalization steps
@@ -46,13 +45,13 @@ end = time.time()
 duration = end-start
 config.lg.log(f"All done in {int(duration / 60)} minutes!!!")
 
-if (show):
+if show:
     # Load mesh
     mesh1 = config.ml.load_mesh(new_path + '\\' + new_object_path, open3d=True)
     mesh2 = config.ml.load_mesh(original_mesh_path + '\\' + object_path, open3d=True)
 
     # Render mesh
-    config.rd.set_render_mode(render_mode.MIXED)
+    config.rd.set_render_mode(RenderMode.MIXED)
     config.rd.set_background([1,1,1])
     #config.rd.set_mesh_color([1,0,0])
     config.rd.add_mesh(mesh1, new_path + '\\' + new_object_path)

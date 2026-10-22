@@ -2,12 +2,10 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import shapeNormalizer
-from preprocessChecker import preprocessChecker
-import config
+import Utility.config as config
 import open3d as o3d
 import time
-import utility as util
+import Utility.utility as util
 import numpy as np
 
 # Setup
@@ -20,25 +18,21 @@ o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enj
 
 # Actual code
 original_path = 'Data\\OriginalShapeDataBase'
-new_path = 'Data\\TestDatabase'
+new_path = 'Data\\NormalizedShapeDatabase'
 
-# original_files = util.get_all_files(original_path)
-# new_files = util.get_all_files(new_path)
+original_files = util.get_all_files(original_path)
+new_files = util.get_all_files(new_path)
 
 specific_object_original = 'Quadruped\\m94.obj'
-specific_object_new = 'Quadruped\\m94'
+specific_object_new = 'Quadruped\\m94.npz'
 
 original_mesh = config.ml.load_mesh(util.get_path([original_path, specific_object_original]))
-config.ml.save_mesh_numpy(util.get_path([new_path, specific_object_new]), np.asarray(original_mesh.vertices), np.asarray(original_mesh.triangles))
-
-seth = config.ml.load_mesh(util.get_path([new_path, specific_object_new]) + '.npz')
+new_mesh = config.ml.load_mesh(util.get_path([new_path, specific_object_new]))
 
 print(np.asarray(original_mesh.vertices)[0])
 print(np.asarray(original_mesh.vertices)[1])
 print(np.asarray(original_mesh.vertices).shape[0])
-print(np.asarray(seth.vertices)[0])
-print(np.asarray(seth.vertices)[1])
-print(np.asarray(seth.vertices).shape[0])
+print(np.asarray(new_mesh.vertices)[0])
 
 # Finish
 end = time.time()
