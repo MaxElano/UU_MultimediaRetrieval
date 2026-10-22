@@ -1,8 +1,10 @@
-import open3d as o3d
-import numpy as np
+import sys
 import os
-import config
-import utility as util
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
+import numpy as np
+import Utility.config as config
+import Utility.utility as util
 
 '''
 A tool that checks all shapes in a database and infers their:
@@ -10,7 +12,7 @@ Class, number of faces and vertices, type of faces, axis-aligned 3D bounding box
 # saves them to a csv file
 '''
 
-class shapeAnalyser():
+class ShapeAnalyser():
     def __init__(self):
         pass
 
@@ -65,8 +67,8 @@ class shapeAnalyser():
         np.savetxt(file_path, rows, delimiter=",", fmt='%s')
 
 
-sa = shapeAnalyser()
-config.initialize()
+# sa = ShapeAnalyser()
+# config.initialize()
 
 # norm_rows = sa.analyse_shapes(folder="Data\\NormalizedShapeDatabase")
 # sa.save_analysis(norm_rows, file_name = "normalized_data_info.csv")

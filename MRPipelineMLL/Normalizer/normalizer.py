@@ -1,23 +1,20 @@
-import open3d as o3d
 import numpy as np
-import os
-import config
+import Utility.config as config
 import time
-from resampler import resampler_pymeshlab
-import utility as util
-import pymeshlab as pml
-from imageGenerator import imageGenerator 
+from Normalizer.resampler import ResamplerPyMeshLab
+import Utility.utility as util
+from Utility.imageGenerator import ImageGenerator 
 import queue as q
 
 # responsible for fixing holes and remeshing using pymeshlab
-class preNormalizer():
-    ig = imageGenerator()
+class PreNormalizer():
+    ig = ImageGenerator()
     
     meshes_changed_by_holes = 0
     same_edges = 0
     crash = 0
     def __init__(self):
-        self.resampler = resampler_pymeshlab()
+        self.resampler = ResamplerPyMeshLab()
 
     def process_all_meshes(self, path_to_database="Data\\OriginalShapeDatabase", path_to_new_database="Data\\PreprocessedShapeDatabase"):
         config.lg.log(f"Start fixing holes at location {path_to_database}")
@@ -25,7 +22,7 @@ class preNormalizer():
         
         all_files = util.get_all_files(path_to_database)
         util.create_folder(path_to_new_database)
-        pc = util.progress_printer(len(all_files), 500, "holes filled")
+        pc = util.ProgressCounter(len(all_files), 500, "holes filled")
 
         for path in all_files:
             meshset = config.ml.load_mesh(util.get_path(path), pyMeshLab=True)
@@ -39,11 +36,11 @@ class preNormalizer():
 
     def run_one_mesh(self, meshset, path, new_path):
         location = f"Data\\Screenshots\\AllMeshes\\{path[1]}\\{path[2].split(".")[0]}"
-        self.ig.generateFromArrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "00_original") 
+        self.ig.generate_from_arrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "00_original") 
         self.fill_holes(meshset)
-        self.ig.generateFromArrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "01_holes_filled") 
+        self.ig.generate_from_arrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "01_holes_filled") 
         self.resampler.resample_one_mesh(meshset) 
-        self.ig.generateFromArrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "02_resampled") 
+        self.ig.generate_from_arrays(meshset.current_mesh().vertex_matrix(), meshset.current_mesh().face_matrix(), location, "02_resampled") 
         self.save_mesh(meshset, path, new_path)  
 
     def fill_holes(self, meshset):
@@ -68,7 +65,7 @@ class preNormalizer():
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
         config.ml.save_mesh_numpy(total_path, mesh_vertices=meshset.current_mesh().vertex_matrix(), mesh_triangles=meshset.current_mesh().face_matrix())
 
-class normalizerMeshValues():
+class NormalizerMeshValues():
     def __init__(self, mesh):
         self.vertices = np.asarray(mesh.vertices)
         self.face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
@@ -79,8 +76,8 @@ class normalizerMeshValues():
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
 
-class shapeNormalizerOpen3D():
-    ig = imageGenerator()
+class ShapeNormalizerOpen3D():
+    ig = ImageGenerator()
     
     def __init__(self):
         self.not_triangle_orientable = 0
@@ -95,7 +92,7 @@ class shapeNormalizerOpen3D():
         util.create_folder(path_to_new_database)
         number_of_files = len(all_files)
         config.lg.log(f"{number_of_files} objects found")
-        pc = util.progress_printer(number_of_files, 500, "objects normalized")
+        pc = util.ProgressCounter(number_of_files, 500, "objects normalized")
 
         for file in all_files:
             mesh = config.ml.load_mesh(util.get_path(file), open3d=True)
@@ -110,24 +107,24 @@ class shapeNormalizerOpen3D():
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
         location = f"Data\\Screenshots\\AllMeshes\\{object_entry[1]}\\{object_entry[2].split(".")[0]}"
         #mesh = self.general_cleanup(mesh)
-        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up", show_face_normals=True) 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up", show_face_normals=True) 
         
         self.orient_triangles(mesh, object_entry)
-        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces", True) 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces", True) 
         
         mesh = self.translate_to_barycenter_mesh(mesh)
-        self.ig.generateFromArrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated") 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated") 
         
-        mesh_values = normalizerMeshValues(mesh)
+        mesh_values = NormalizerMeshValues(mesh)
         eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
-        self.ig.generateFromArrays(mesh_values.vertices, mesh_values.triangles, location, "06_aligned_world_axis") 
+        self.ig.generate_from_arrays(mesh_values.vertices, mesh_values.triangles, location, "06_aligned_world_axis") 
         
         self.flip_test(mesh_values)
-        self.ig.generateFromArrays(mesh_values.vertices, mesh_values.triangles, location, "07_flipped")
+        self.ig.generate_from_arrays(mesh_values.vertices, mesh_values.triangles, location, "07_flipped")
         
         self.scale_to_unit(mesh_values)
-        self.ig.generateFromArrays(mesh_values.vertices, mesh_values.triangles, location, "08_scaled")
+        self.ig.generate_from_arrays(mesh_values.vertices, mesh_values.triangles, location, "08_scaled")
         
         self.save_mesh(mesh_values, object_entry, path_to_new_database)
 
@@ -202,9 +199,9 @@ class shapeNormalizerOpen3D():
         ys = np.sign(y) if np.sign(y) != 0 else 1
         zs = np.sign(z) if np.sign(z) != 0 else 1
 
-        mesh_values.vertices[:,0:1] *= np.sign(x)
-        mesh_values.vertices[:,1:2] *= np.sign(y)
-        mesh_values.vertices[:,2:3] *= np.sign(z)
+        mesh_values.vertices[:,0:1] *= np.sign(xs)
+        mesh_values.vertices[:,1:2] *= np.sign(ys)
+        mesh_values.vertices[:,2:3] *= np.sign(zs)
         
     def scale_to_unit(self, mesh_values):
         max_bounds = np.max(mesh_values.vertices, axis=0)
@@ -227,7 +224,7 @@ class CustomNormalizer():
         self.screenshot_location = screenshot_location
         self.capture_screenshots = capture_screenshots
         if capture_screenshots:
-            self.image_generator = imageGenerator()
+            self.image_generator = ImageGenerator()
     
     def normalize_all_meshes(self, source_database_path, target_database_path, progress_update_rate = 250):
         config.lg.log(f"Starting Custom Normalization process with database {source_database_path} to {target_database_path}. Progress update rate: {progress_update_rate}")
@@ -237,7 +234,7 @@ class CustomNormalizer():
         util.create_folder(target_database_path)
         number_of_files = len(all_files)
         config.lg.log(f"{number_of_files} files found")
-        pc = util.progress_printer(number_of_files, progress_update_rate, "objects normalized")
+        pc = util.ProgressCounter(number_of_files, progress_update_rate, "objects normalized")
 
         for file_data in all_files:
             meshset = config.ml.load_mesh(util.get_path(file_data), pyMeshLab=True) #Done using library
@@ -251,13 +248,13 @@ class CustomNormalizer():
     
     # TODO implement this for neater normalizer
     def run_action_with_screenshot(self, action, vertices, triangles, location, title, show_face_normals = False):
-        self.image_generator.generateFromArrays(vertices, triangles, location, title, show_face_normals=show_face_normals) 
+        self.image_generator.generate_from_arrays(vertices, triangles, location, title, show_face_normals=show_face_normals) 
     
     def normalize_one_mesh(self, vertices, triangles, file_data, target_database_path):
         #Create custom class
-        mesh_values = customMeshValues(vertices, triangles, file_data)
+        mesh_values = CustomMeshValues(vertices, triangles, file_data)
         if self.capture_screenshots:
-            self.image_generator.generateFromArrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "00_Start") 
+            self.image_generator.generate_from_arrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "00_Start") 
         
         #Fill holes
         
@@ -295,7 +292,7 @@ class CustomNormalizer():
         #TODO translate all points or regenerate
         
         if self.capture_screenshots:
-            self.image_generator.generateFromArrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "05_Translated") 
+            self.image_generator.generate_from_arrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "05_Translated") 
     
     def align_to_world_axis(self, mesh_values):
         # Code from example on Teams
@@ -319,7 +316,7 @@ class CustomNormalizer():
         #TODO change all points and normals OR regenerate (for now regenerate)
         
         if self.capture_screenshots:
-            self.image_generator.generateFromArrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "06_Aligned") 
+            self.image_generator.generate_from_arrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "06_Aligned") 
                              
     def flip_test(self, mesh_values):
         x = np.sum(np.sign(mesh_values.weighted_face_centers[:,0:1]) * (mesh_values.weighted_face_centers[:,0:1] * mesh_values.face_centers[:,0:1]), axis=0)
@@ -340,7 +337,7 @@ class CustomNormalizer():
         #TODO flip all values points and normals or regenerate
         
         if self.capture_screenshots:
-            self.image_generator.generateFromArrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "07_Flipped") 
+            self.image_generator.generate_from_arrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "07_Flipped") 
                       
     def scale_to_unit_cube(self, mesh_values):
         max_bounds = np.max(mesh_values.vertices, axis=0)
@@ -350,14 +347,14 @@ class CustomNormalizer():
         #TODO scale all points or regenerate
         
         if self.capture_screenshots:
-            self.image_generator.generateFromArrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "08_Scaled") 
+            self.image_generator.generate_from_arrays(mesh_values.vertices, mesh_values.faces, self.screenshot_location + "\\" + util.get_path(mesh_values.file_data[1:]), "08_Scaled") 
               
     def save_mesh_values(self, mesh_values, target_database_path):
         total_path = target_database_path + '\\' + '\\'.join(mesh_values.file_data[1:])
         config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
     
     
-class customMeshValues():
+class CustomMeshValues():
     def __init__(self, vertices, faces, file_data):
         self._vertices = vertices
         self._faces = faces

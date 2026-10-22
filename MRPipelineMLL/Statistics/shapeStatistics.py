@@ -1,5 +1,8 @@
-import numpy as np
+import sys
 import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
+import numpy as np
 from matplotlib import pyplot as plt
 
 '''
@@ -13,7 +16,7 @@ The properties of interest are: number of vertices, number of faces, shape class
 Then, it shows an average shape and a few outliers (if any) using the viewer.
 '''
 
-class shapeStatistics():
+class ShapeStatistics():
     def __init__(self):
         shape_data = None
 
@@ -24,7 +27,7 @@ class shapeStatistics():
         counts, bins = np.histogram(data, bins=no_bins)
 
         # Plot histogram
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         ax.hist(bins[:-1], bins, weights=counts)
         ax.set_title(title)
         ax.set_ylabel("Number of samples per bin")
@@ -184,11 +187,11 @@ class shapeStatistics():
             categorical = True
             )
 
-ss = shapeStatistics()
+# ss = shapeStatistics()
 
-ss.retrieve_data(file_name="normalized_data_info.csv")
-ss.show_statistics(folder="Data\\DataAnalysis\\NormalizedDataStatistics")
+# ss.retrieve_data(file_name="normalized_data_info.csv")
+# ss.show_statistics(folder="Data\\DataAnalysis\\NormalizedDataStatistics")
 
 
-ss.retrieve_data()
-ss.show_statistics()
+# ss.retrieve_data()
+# ss.show_statistics()

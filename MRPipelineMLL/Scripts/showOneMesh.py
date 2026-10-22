@@ -2,14 +2,10 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import shapeNormalizer
-from preprocessChecker import preprocessChecker
-import config
+import Utility.config as config
 import open3d as o3d
 import time
-import utility as util
-import numpy as np
-from renderer import render_mode
+from renderer import RenderMode
 
 # Setup
 start = time.time()
@@ -28,7 +24,7 @@ mesh1 = config.ml.load_mesh(mesh_path_1)
 #mesh2 = config.ml.load_mesh(mesh_path_2)
 
 # Render mesh
-config.rd.set_render_mode(render_mode.MIXED)
+config.rd.set_render_mode(RenderMode.MIXED)
 config.rd.set_background([1,1,1])
 config.rd.set_mesh_color([0.4,0.4,0.4])
 config.rd.add_mesh(mesh1, mesh_path_1)

@@ -1,6 +1,9 @@
+import sys
 import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
 import numpy as np
-import config
+import Utility.config as config
 
 '''
 File with functions that are used very often, 
@@ -47,7 +50,7 @@ def save_numpy_file(total_path, **kwargs):
 def load_numpy_file(total_path):
     return np.load(total_path)
         
-class progress_printer():
+class ProgressCounter():
     def __init__(self, total, update_every, custom_text = ''):
         self.total = total
         self.update_every = update_every

@@ -3,11 +3,11 @@ import os
 
 import sys
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
-import config
+import Utility.config as config
  
 def getAllFiles(databse_location):
     all_files = []
-    for root, dirs, files in os.walk(databse_location):
+    for root, _, files in os.walk(databse_location):
         for file in files:
             if file.endswith(".obj"):
                 all_files.append(os.path.join(root[27:], file))

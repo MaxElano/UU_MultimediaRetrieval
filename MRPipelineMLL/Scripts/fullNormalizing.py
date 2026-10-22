@@ -2,9 +2,9 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import preNormalizer, shapeNormalizerOpen3D
-from preprocessChecker import preprocessChecker
-import config
+from Normalizer.normalizer import PreNormalizer, ShapeNormalizerOpen3D
+from Normalizer.normalizeChecker import NormalizeChecker
+import Utility.config as config
 import open3d as o3d
 import time
 
@@ -19,13 +19,13 @@ og_path = "Data\\OriginalShapeDatabase"
 middle_path = "Data\\PreprocessedShapeDatabase"
 new_path = "Data\\NormalizedShapeDatabase"
 
-pn = preNormalizer()
+pn = PreNormalizer()
 pn.process_all_meshes(og_path, middle_path)
 
-sn = shapeNormalizerOpen3D()
+sn = ShapeNormalizerOpen3D()
 sn.normalize_all_meshes(middle_path, new_path)
 
-ppc = preprocessChecker()
+ppc = NormalizeChecker()
 ppc.compute_all_checks(show_update_every=250, processed_data_path=new_path)    
 
 end = time.time()

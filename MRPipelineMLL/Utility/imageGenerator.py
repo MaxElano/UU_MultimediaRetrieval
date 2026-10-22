@@ -1,5 +1,9 @@
-from renderer import render_mode
-import config
+import sys
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
+from renderer import RenderMode
+import Utility.config as config
 from enum import Enum
 import open3d as o3d
 import numpy as np
@@ -35,7 +39,7 @@ Works with multiple meshes at once, but will be inside each other.
 # config.rd.take_screenshot("I\\Want\\Way\\Too\\Many\\Files\\test.png")
 # #config.rd.launch_renderer()
 
-class cameraAngle(Enum): # gives an angle name and position
+class CameraAngle(Enum): # gives an angle name and position
     FRONT = (0, 0, 0)
     BACK = (0, 0, 180)
     LEFT = (0, 0, 90)
@@ -43,32 +47,32 @@ class cameraAngle(Enum): # gives an angle name and position
     TOP = (-90, 0, 0)
     BOTTOM = (90, 0, 0)
 
-class imageGenerator():
+class ImageGenerator():
     def __init__(self):
         # Initialize image settings (the same for all images)
         config.initialize(renderer_height=1024, renderer_width=1024)
 
-        config.rd.set_render_mode(render_mode.MIXED)
+        config.rd.set_render_mode(RenderMode.MIXED)
         config.rd.set_background([1,1,1])
         config.rd.set_mesh_color([0,0.4,0.6])
 
-    def generateFromPath(self,
+    def generate_from_path(self,
                       paths,  # array where you give the paths
                       location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                       title = "screenshot", #title of the screenshot
-                      camera_angle = cameraAngle.FRONT
+                      camera_angle = CameraAngle.FRONT
                       ):
         for path in paths:
             mesh = config.ml.load_mesh(path)
             config.rd.add_mesh(mesh, path)
 
-        self.generateScreenshot(camera_angle, location, title)
+        self.generate_screenshot(camera_angle, location, title)
 
-    def generateFromMesh(self,
+    def generate_from_mesh(self,
                       meshes,  # array where you give the meshes
                       location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                       title = "screenshot", #title of the screenshot
-                      camera_angle = cameraAngle.FRONT,
+                      camera_angle = CameraAngle.FRONT,
                       show_face_normals = False
                       ):
         for mesh in meshes:
@@ -91,21 +95,21 @@ class imageGenerator():
                 
             config.rd.add_mesh(mesh, "L")
 
-        self.generateScreenshot(camera_angle, location, title)
+        self.generate_screenshot(camera_angle, location, title)
     
-    def generateFromArrays(self,
+    def generate_from_arrays(self,
                           vertices,  # array where you give the meshes
                           faces,
                           location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                           title = "screenshot", #title of the screenshot
-                          camera_angle = cameraAngle.FRONT,
+                          camera_angle = CameraAngle.FRONT,
                           show_face_normals = False
                           ):
         mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
-        self.generateFromMesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
+        self.generate_from_mesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
     
     # rotation only rotates the meshes, it doesn't rotate everything!!!!!
-    def generateScreenshot(self,
+    def generate_screenshot(self,
                            camera_angle,
                            location,
                            title):
@@ -119,7 +123,7 @@ class imageGenerator():
         # Clear renderer
         config.rd.remove_all_meshes()
 
-    def generateImages(self):
+    def generate_images(self):
         # Necessary meshes
         mesh_path_1 = "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj"
         mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"

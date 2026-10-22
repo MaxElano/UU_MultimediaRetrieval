@@ -1,16 +1,19 @@
+import sys
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
 import open3d as o3d
 import numpy as np
-import config
-import os
+import Utility.config as config
 import random
-import utility as util
+import Utility.utility as util
 import pymeshlab as pml
 
 '''
     The meshLoader will convert all path strings to actual meshes and return these
 '''
 
-class meshLoader():
+class MeshLoader():
     def __init__(self):
         pass
 

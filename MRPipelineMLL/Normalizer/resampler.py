@@ -1,10 +1,12 @@
+import sys
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
 import open3d as o3d
-from renderer import render_mode
-import config
+import Utility.config as config
 import os
 import pymeshlab  as pml
-from imageGenerator import imageGenerator
-
+from renderer import RenderMode
 
 '''
     resample outliers with poorly-sampled shapes
@@ -22,7 +24,7 @@ from imageGenerator import imageGenerator
     A rough estimate of a good sample (vertex) count is around 5K..10K. 
 '''
 
-class resampler_open3d():
+class ResamplerOpen3D():
     def __init__(self):
         pass
 
@@ -100,14 +102,14 @@ class resampler_open3d():
 
         print(mesh_after)
         # Render mesh
-        config.rd.set_render_mode(render_mode.NORMAL)
+        config.rd.set_render_mode(RenderMode.NORMAL)
         config.rd.show_world_axis(True)
         config.rd.add_mesh(mesh_before)
         config.rd.add_mesh(mesh_after.translate((1, 0, 0)))
         config.rd.launch_renderer()
 
 
-class resampler_pymeshlab():
+class ResamplerPyMeshLab():
     def __init__(self):
         pass
 
@@ -155,7 +157,7 @@ class resampler_pymeshlab():
         print(mesh_after)
 
         # Render mesh
-        config.rd.set_render_mode(render_mode.NORMAL)
+        config.rd.set_render_mode(RenderMode.NORMAL)
         config.rd.add_world_axis()
         config.rd.add_mesh(mesh_before, meshpath)
         config.rd.add_mesh(mesh_after.translate((2, 0, 0)), newmeshpath)

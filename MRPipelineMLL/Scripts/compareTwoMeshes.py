@@ -2,12 +2,10 @@ import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 
-from shapeNormalizer import shapeNormalizer
-from preprocessChecker import preprocessChecker
-import config
+import Utility.config as config
 import open3d as o3d
 import time
-import utility as util
+import Utility.utility as util
 import numpy as np
 
 # Setup

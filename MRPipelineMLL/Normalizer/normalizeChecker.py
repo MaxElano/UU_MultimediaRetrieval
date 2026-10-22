@@ -1,14 +1,15 @@
-import open3d as o3d
-import numpy as np
+import sys
 import os
-import config
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
+import numpy as np
+import Utility.config as config
 import time
 from matplotlib import pyplot as plt
-import utility as util
-from enum import Enum
+import Utility.utility as util
 
 #gejoinked
-class normalizerMeshValues():
+class NormalizerMeshValues():
     def __init__(self, mesh):
         self.vertices = np.asarray(mesh.vertices)
         self.face_areas = np.linalg.norm(np.asarray(mesh.triangle_normals), axis=1) / 2
@@ -18,7 +19,7 @@ class normalizerMeshValues():
         self.face_areas_reshaped = np.reshape(np.repeat(self.face_areas,3), (self.face_areas.size, 3))
         self.weighted_face_centres = self.face_areas_reshaped * self.face_centres
 
-class preprocessChecker():
+class NormalizeChecker():
     def __init__(self):
         pass
     
@@ -138,7 +139,7 @@ class preprocessChecker():
         plt.close()
 
     def check_mesh(self, mesh, path, original_mesh):
-        mesh_values = normalizerMeshValues(mesh)
+        mesh_values = NormalizerMeshValues(mesh)
         bc_error = self.check_barycenter(mesh_values)
         pa_error = self.check_principal_axes(mesh_values)
         scale_error = self.check_scaling(mesh_values)
@@ -243,8 +244,8 @@ class preprocessChecker():
         variance = total / (coords.shape[0] - 1)
         return variance
 
-config.initialize(skip_renderer=True)
+# config.initialize(skip_renderer=True)
 
 
-ppc = preprocessChecker()
-ppc.compute_all_checks(show_update_every=100, processed_data_path="Data\\NormalizedSmallShapeDatabase\\")    
+# ppc = NormalizeChecker()
+# ppc.compute_all_checks(show_update_every=100, processed_data_path="Data\\NormalizedSmallShapeDatabase\\")    

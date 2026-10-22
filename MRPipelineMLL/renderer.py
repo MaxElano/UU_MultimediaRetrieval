@@ -1,10 +1,14 @@
+import sys
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
 import open3d as o3d
 import numpy as np
 from enum import Enum
-import config
-import utility as util
+import Utility.config as config
+import Utility.utility as util
 
-class render_mode(Enum):
+class RenderMode(Enum):
     #
     EMPTY = 0
     NORMAL = 1
@@ -20,10 +24,10 @@ class render_mode(Enum):
             self.previous = previous
             self.next = first
 
-class renderer():
+class Renderer():
     all_meshes = []
     all_wireframes = []
-    current_render_mode = render_mode.NORMAL
+    current_render_mode = RenderMode.NORMAL
     is_animating = False    
     
     visualizer = o3d.visualization.VisualizerWithKeyCallback()
@@ -39,10 +43,10 @@ class renderer():
             self.render_options.background_color = background_color 
             self.render_options.mesh_show_back_face = True
 
-            self.visualizer.register_key_callback(ord("A"), renderer.show_animation)
-            self.visualizer.register_key_callback(ord("M"), renderer.next_render_mode)
-            self.visualizer.register_key_callback(ord("Y"), renderer.import_random_mesh)
-            self.visualizer.register_key_callback(ord("U"), renderer.delete_all_meshes)
+            self.visualizer.register_key_callback(ord("A"), Renderer.show_animation)
+            self.visualizer.register_key_callback(ord("M"), Renderer.next_render_mode)
+            self.visualizer.register_key_callback(ord("Y"), Renderer.import_random_mesh)
+            self.visualizer.register_key_callback(ord("U"), Renderer.delete_all_meshes)
 
     def launch_renderer(self):
         self.visualizer.run()
@@ -72,14 +76,14 @@ class renderer():
         
         mesh.paint_uniform_color(self.mesh_color)
         self.all_meshes.append(mesh)
-        wf = renderer.generate_wireframe(mesh, label)
+        wf = Renderer.generate_wireframe(mesh, label)
         self.all_wireframes.append(wf)
         match self.current_render_mode:
-            case render_mode.NORMAL:
+            case RenderMode.NORMAL:
                 self.visualizer.add_geometry(mesh, reset_bounding_box=True)
-            case render_mode.WIREFRAME_ONLY:
+            case RenderMode.WIREFRAME_ONLY:
                 self.visualizer.add_geometry(wf, reset_bounding_box=True)
-            case render_mode.MIXED:
+            case RenderMode.MIXED:
                 self.visualizer.add_geometry(mesh, reset_bounding_box=True)
         
     def add_meshes(self, 
@@ -150,15 +154,15 @@ class renderer():
         visualizer.clear_geometries()
         visualizer.get_render_option().mesh_show_wireframe = False
         match visual_option:
-            case render_mode.EMPTY:
+            case RenderMode.EMPTY:
                 pass
-            case render_mode.NORMAL:
+            case RenderMode.NORMAL:
                 if(len(self.all_meshes) > 0):
                     np.vectorize(visualizer.add_geometry)(self.all_meshes)
-            case render_mode.WIREFRAME_ONLY:
+            case RenderMode.WIREFRAME_ONLY:
                 if(len(self.all_wireframes) > 0):
                     np.vectorize(visualizer.add_geometry)(self.all_wireframes)
-            case render_mode.MIXED:
+            case RenderMode.MIXED:
                 visualizer.get_render_option().mesh_show_wireframe = True
                 if(len(self.all_meshes) > 0):
                     np.vectorize(visualizer.add_geometry)(self.all_meshes)
@@ -185,7 +189,7 @@ class renderer():
         if (config.rd.is_animating):
             vis.register_animation_callback(None)
         else:
-            vis.register_animation_callback(renderer.animation)
+            vis.register_animation_callback(Renderer.animation)
         config.rd.is_animating = not config.rd.is_animating
     
     # Used with animation callbacks
