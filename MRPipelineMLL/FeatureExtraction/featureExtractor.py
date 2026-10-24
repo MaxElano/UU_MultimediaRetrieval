@@ -274,9 +274,3 @@ class FeatureExtractor():
                 print(row)
                 return int(row[0])
         return -1
-
-# config.initialize(skip_renderer=True)    
-
-# fe = FeatureExtractor()
-
-# fe.extract_features_from_database()
