@@ -107,7 +107,7 @@ class ShapeNormalizerOpen3D():
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
         location = f"Data\\Screenshots\\AllMeshes\\{object_entry[1]}\\{object_entry[2].split(".")[0]}"
         #mesh = self.general_cleanup(mesh)
-        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up", show_face_normals=True) 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up", show_face_normals=False) 
         
         self.orient_triangles(mesh, object_entry)
         self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces", True) 
@@ -213,6 +213,7 @@ class ShapeNormalizerOpen3D():
         total_path = path_to_new_database + '\\' + '\\'.join(object_entry[1:])
         config.ml.save_mesh_numpy(total_path, mesh_vertices=mesh_values.vertices, mesh_triangles=mesh_values.triangles)
 
+#TODO WIP by Max in free-time
 class CustomNormalizer():   
     nr_contains_holes = 0
     nr_holes_fully_fixed = 0
