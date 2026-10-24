@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 import Utility.config as config
 from Statistics.shapeAnalyser import ShapeAnalyser
 from Statistics.shapeStatistics import ShapeStatistics
