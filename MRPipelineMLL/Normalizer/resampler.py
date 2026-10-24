@@ -124,18 +124,16 @@ class ResamplerPyMeshLab():
 
     # refines a mesh so that its number of faces is higher than a given number
     def refine(self, mesh, min_vertices):
-        target_edge_length = 0.02
+        target_edge_length = 0.9
         # checks if the mesh is refined enough- non-manifold meshes sometimes lead to high nr of triangles while vertices stay low, so an extra check is done
         while mesh.current_mesh().vertex_number() < min_vertices and target_edge_length > 0:
             # still needs to be tested if this is the best function for it
-            mesh.meshing_isotropic_explicit_remeshing(targetlen=pml.PureValue(target_edge_length), iterations=1)
-            target_edge_length -= 0.002
+            mesh.meshing_isotropic_explicit_remeshing(targetlen=pml.PercentageValue(target_edge_length), iterations=1)
+            target_edge_length -= 0.1
         return mesh
 
     # simplify a mesh to have a certain amount of vertices
-    def simplify_by_decimation(self, mesh, max_vertices):
-        # try isotropic remeshing first as it remeshes more evenly
-        mesh.meshing_isotropic_explicit_remeshing(targetlen=pml.PureValue(0.01), iterations=1)                  
+    def simplify_by_decimation(self, mesh, max_vertices):               
         while mesh.current_mesh().vertex_number() > max_vertices:
             mesh.meshing_decimation_quadric_edge_collapse()  
         return mesh
@@ -158,23 +156,20 @@ class ResamplerPyMeshLab():
 
         # Render mesh
         config.rd.set_render_mode(RenderMode.NORMAL)
-        config.rd.add_world_axis()
+        #config.rd.add_world_axis()
         config.rd.add_mesh(mesh_before, meshpath)
-        config.rd.add_mesh(mesh_after.translate((2, 0, 0)), newmeshpath)
+        config.rd.add_mesh(mesh_after.translate((0.1, 0, 0)), newmeshpath)
         config.rd.launch_renderer()
 
+
 '''
-img = imageGenerator()
 config.initialize()
-rs = resampler_pymeshlab()
+rs = ResamplerPyMeshLab()
 newmeshpath = "Data\\Test\\D00863.npz" 
-meshpath = "Data\\OriginalShapeDatabase\\Motorcycle\\D00886.obj"
+meshpath = "Data\\OriginalShapeDatabase\\Knife\\D01119.obj"
 rs.render_before_after(meshpath, newmeshpath)
 
 mesh_before = config.ml.load_mesh(meshpath, open3d=True)
-print(mesh_before)  
-    
 mesh_after = config.ml.load_mesh(newmeshpath, open3d=True)
-print(mesh_after)
-img.generateFromMesh([mesh_after.translate((1, 0, 0)), mesh_before], title="remesh")
+
 '''
