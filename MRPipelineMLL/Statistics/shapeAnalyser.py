@@ -66,12 +66,3 @@ class ShapeAnalyser():
         file_path = "Data\\DataAnalysis\\" + file_name
         np.savetxt(file_path, rows, delimiter=",", fmt='%s')
 
-
-# sa = ShapeAnalyser()
-# config.initialize()
-
-# norm_rows = sa.analyse_shapes(folder="Data\\NormalizedShapeDatabase")
-# sa.save_analysis(norm_rows, file_name = "normalized_data_info.csv")
-
-# rows = sa.analyse_shapes()
-# sa.save_analysis(rows)

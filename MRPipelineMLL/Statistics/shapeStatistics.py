@@ -187,11 +187,4 @@ class ShapeStatistics():
             categorical = True
             )
 
-# ss = shapeStatistics()
 
-# ss.retrieve_data(file_name="normalized_data_info.csv")
-# ss.show_statistics(folder="Data\\DataAnalysis\\NormalizedDataStatistics")
-
-
-# ss.retrieve_data()
-# ss.show_statistics()
