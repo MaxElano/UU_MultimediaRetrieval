@@ -4,9 +4,10 @@ sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src
 from renderer import GUIRenderer, RenderMode #surely ill need it and I will adapt it to work surely
 import Utility.config as config
 import Utility.utility as util
+from Utility.imageGenerator import ImageGenerator
 import open3d as o3d
+import numpy as np #fah
 import open3d.visualization.gui as gui
-
 
 class MainApplication:
     def __init__(self):
@@ -15,11 +16,14 @@ class MainApplication:
 
         # setting query info ---------------------------------------------------
         self.db_shapes = util.get_all_files("Data\\OriginalShapeDatabase")
+        print(self.db_shapes)
 
         #current query
         self.query_path = None
         self.query_mesh = None
         self.similar_amt = 0
+        # has every shape in the database and their corresponding similarity
+        self.similarity_shapes = None
 
         # setting the scene ----------------------------------------------------
         self.w = gui.Application.instance.create_window("Test GUI", 1080, 720)
@@ -113,9 +117,12 @@ class MainApplication:
         self.right_panel.frame = gui.Rect(rect.x + left_width, rect.y, right_width, rect.height)
         
     def dummy_display(self):
-        # dummy test scroll wheel
+        # dummy test scroll 
         for i in range(50):
-            self.results_content.add_child(gui.Label(f"imagine a shape {i + 1}  |  Similarity: {1.0 / (i + 1):.4f}"))
+            #self.results_content.add_child(gui.Label(f"imagine a shape {i + 1}  |  Similarity: {1.0 / (i + 1):.4f}"))
+            #loc, cat, name = self.db_shapes[i]
+            similarity = (1.0/(i+1))
+            self.add_sim_result(self.db_shapes[i], similarity)
         # dummy test drawing a mesh AAAAAAAA
         mesh = self.db_shapes[0]
         self.renderer.display_mesh_from_entry(mesh)
@@ -138,4 +145,54 @@ class MainApplication:
     def compare(self):
         pass
 
+
+    # takes a list of shapes and their similarity scores
+    # which is: [['database location', 'category', 'object name'], sim_score]
+    def display_results(self):
+        if self.similarity_shapes is None:
+            pass
+            # update text with: 0 shapes found, something went wrong
+        pass
+
+    # takes the thingy from get_all_files
+    # which is: ['database location', 'category', 'object name']
+    def add_sim_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 100):
+        if not os.path.isdir(display_db):
+            ig = ImageGenerator()
+            ig.generate_display_images()
+        _, shape_class, file_name = file
+        img_name = os.path.splitext(file_name)[0] + ".png"
+        img_path = os.path.join(display_db, shape_class, img_name)
+
+        if os.path.isfile(img_path):
+            img = o3d.io.read_image(img_path)
+            img = self.resize_image(img, img_size)
+        else:
+            img = o3d.geometry.Image(np.full((img_size,img_size,3), 255, dtype=np.uint8))
+        img_widget = gui.ImageWidget(img)
+
+        img_layout = gui.Horiz()
+        img_layout.add_child(img_widget)
+
+        sim_info = gui.Vert()
+        sim_info.add_child(gui.Label(file_name))
+        sim_info.add_child(gui.Label(f"Similarity: {similarity:.5f}"))
+
+        row = gui.Vert()
+        row.add_child(img_layout)
+        row.add_child(sim_info)
+
+        self.results_content.add_child(row)
+        
+    # resize an image using numpy :O
+    def resize_image(self, img, size=100):
+        arr = np.asarray(img)
+        height, width = arr.shape[:2]
+        x,y = np.linspace(0,width-1,size).astype(int), np.linspace(0,height-1,size).astype(int)
+
+        resized = arr[y[:,None], x[None,:]]
+        return o3d.geometry.Image(np.ascontiguousarray(resized))
+
 MainApplication().run()
+#ma = MainApplication()
+#ma.generate_display_images()

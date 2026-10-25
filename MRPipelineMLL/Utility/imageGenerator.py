@@ -4,6 +4,7 @@ sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src
 
 from renderer import RenderMode
 import Utility.config as config
+import Utility.utility as util
 from enum import Enum
 import open3d as o3d
 import numpy as np
@@ -48,13 +49,13 @@ class CameraAngle(Enum): # gives an angle name and position
     BOTTOM = (90, 0, 0)
 
 class ImageGenerator():
-    def __init__(self):
+    def __init__(self, window_size = 1024):
         # Initialize image settings (the same for all images)
         config.initialize(renderer_height=1024, renderer_width=1024)
 
         config.rd.set_render_mode(RenderMode.MIXED)
         config.rd.set_background([1,1,1])
-        config.rd.set_mesh_color([0,0.4,0.6])
+        config.rd.set_mesh_color([0.4,0.4,0.4])
 
     def generate_from_path(self,
                       paths,  # array where you give the paths
@@ -63,7 +64,8 @@ class ImageGenerator():
                       camera_angle = CameraAngle.FRONT
                       ):
         for path in paths:
-            mesh = config.ml.load_mesh(path)
+            #sorry gehardcode TIJDELIJK
+            mesh = config.ml.load_mesh(path, open3d=True)
             config.rd.add_mesh(mesh, path)
 
         self.generate_screenshot(camera_angle, location, title)
@@ -107,14 +109,29 @@ class ImageGenerator():
                           ):
         mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
         self.generate_from_mesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
-    
+
+    # If no database with icons of all shapes exists yet, call this shi
+    # it will create one!
+    def generate_display_images(self, shape_db = "Data\\OriginalShapeDatabase", display_db = "Data\\Screenshots\\DisplayImages"):
+        db_shapes = util.get_all_files(shape_db)
+        util.create_folder(display_db)
+        for file in db_shapes:
+            _, shape_class, file_name = file
+            shape_path = util.get_path(file)
+            img_name = os.path.splitext(file_name)[0]
+            img_path = os.path.join(display_db, shape_class)
+            if not os.path.exists(os.path.join(img_path, img_name + ".png")):
+                self.generate_from_path(paths=[shape_path], location=img_path, title=img_name)
+
     # rotation only rotates the meshes, it doesn't rotate everything!!!!!
     def generate_screenshot(self,
                            camera_angle,
                            location,
-                           title):
-        config.rd.add_world_axis()
-        x, y, z = camera_angle.value
+                           title,
+                           world_axis = False):
+        if world_axis:
+            config.rd.add_world_axis()
+        #x, y, z = camera_angle.value
         #config.rd.set_camera_position(camera_angle.value)
         #config.rd.set_camera_target([0, 0, 0])
         #config.rd.zoom_camera()
@@ -155,5 +172,6 @@ class ImageGenerator():
 #mesh_path_1 = "Data\\NormalizedShapeDatabase\\Quadruped\\m94.npz"
 #mesh_path_2 = "Data\\NormalizedShapeDatabase\\Bed\\D00031.obj"
 
-#ig = imageGenerator()
+#ig = ImageGenerator(window_size = 60)
+#ig.generate_display_images()
 #ig.generateFromPath([mesh_path_1])
