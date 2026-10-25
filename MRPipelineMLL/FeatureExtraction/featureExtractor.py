@@ -5,10 +5,12 @@ sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src
 import numpy as np
 import Utility.config as config
 import Utility.utility as util
+import Utility.distanceFunctions as distFunc
 from renderer import RenderMode
 import time
 import random
 import math
+
 
 class FeatureExtractor():
     def __init__(self):
@@ -275,8 +277,21 @@ class FeatureExtractor():
                 return int(row[0])
         return -1
 
+    # Extremely heavy function cuz of nr_meshes * nr_meshes * nr_feat
+    def compute_feature_weights(self, all_global_features, all_distribution_features):
+        nr_of_global_features = all_global_features.shape[1]
+        nr_of_shapes = all_global_features.shape[0]
+
+        for i in range(nr_of_shapes):
+            for j in i + range(nr_of_shapes - i - 1) + 1: #Only need half of 2d table, cuz d(a,b) == d(b,a)
+                for f in range(nr_of_global_features):
+                    dist = distFunc.get_euclidean_distance(all_global_features[i,f], all_global_features[j,f])
+                #calc_dist(i, j)
+
+        return 
+
+    def compute_variance
+
 # config.initialize(skip_renderer=True)    
-
 # fe = FeatureExtractor()
-
 # fe.extract_features_from_database()
