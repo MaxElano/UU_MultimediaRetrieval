@@ -3,7 +3,6 @@ import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 from renderer import GUIRenderer, RenderMode #surely ill need it and I will adapt it to work surely
 import Utility.config as config
-from Utility.logger import Logger as logger
 import Utility.utility as util
 from Utility.imageGenerator import ImageGenerator
 import open3d as o3d
@@ -13,14 +12,13 @@ import open3d.visualization.gui as gui
 class MainApplication:
     def __init__(self): 
         config.initialize(skip_renderer=True)
-        config.lg.set_to_write()
 
         self.app = gui.Application.instance
         self.app.initialize()
 
         # setting query info ---------------------------------------------------
         self.db_shapes = util.get_all_files("Data\\OriginalShapeDatabase")
-        print(self.db_shapes)
+
         #current query
         self.query_path = None
         self.query_mesh = None
@@ -137,7 +135,6 @@ class MainApplication:
     # should use the database from which you can choose 1 mesh
     # It displays this mesh and sets it as query mesh + location
     def _on_import_mesh(self):
-        config.lg.log("clicked the choose mesh button")
         dialog = gui.FileDialog(gui.FileDialog.OPEN, "Choose a mesh", self.w.theme)
 
         dialog.add_filter(".obj", "3D meshes")
@@ -146,32 +143,30 @@ class MainApplication:
         self.w.show_dialog(dialog)
 
     def _on_cancel(self):
+        print("Cancelled", flush=True)
         self.w.close_dialog()
 
     def _on_done(self, path):
+        print("Selected:", path, flush=True)
+        self.w.close_dialog()
+        print("Dialog closed", flush=True)
         self.query_path = path
         self.query_mesh = o3d.io.read_triangle_mesh(path)
         self.renderer.display_mesh(self.query_mesh)
+        #TODO JUST CHANGE TO TITLE OF MESH without obj
         self.status.text = f"Loaded: {path}"
-        self.w.close_dialog()
-
-        #mesh = o3d.io.read_triangle_mesh(path)
-
-        #if mesh.is_empty():
-        #    config.lg.log("Could not load mesh")
-        #    return
-
-        #config.lg.log("Mesh loaded successfully")
 
     # should be able to 'import' a mesh
     # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
     def _on_choose_mesh(self):
+        pass
+        '''
         self.mesh_dialog = gui.Dialog("Pick a mesh any mesh")
         em = self.w.theme.font_size
         layout = gui.Vert(em, gui.Margins(em, em, em, em))
         self.mesh_list = gui.ListView()
-        self.mesh_list.set_items(str(entry[2]) for entry in self.db_shapes)
+        self.mesh_list.set_items(entry[2] for entry in self.db_shapes)
 
         layout.add_child(self.mesh_list)
 
@@ -181,7 +176,7 @@ class MainApplication:
 
         self.mesh_dialog.add_child(layout)
         self.w.show_dialog(self.mesh_dialog)
-
+        '''
     # only works if there is a query mesh
     # takes the query mesh location and computes a similarity score for EVERY mesh
     # returns either the K or the ones under a certain threshold (implement diffeerent options)
