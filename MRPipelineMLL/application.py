@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
 from renderer import GUIRenderer, RenderMode #surely ill need it and I will adapt it to work surely
 import Utility.config as config
+from Utility.logger import Logger as logger
 import Utility.utility as util
 from Utility.imageGenerator import ImageGenerator
 import open3d as o3d
@@ -10,20 +11,22 @@ import numpy as np #fah
 import open3d.visualization.gui as gui
 
 class MainApplication:
-    def __init__(self):
+    def __init__(self): 
+        config.initialize(skip_renderer=True)
+        config.lg.set_to_write()
+
         self.app = gui.Application.instance
         self.app.initialize()
 
         # setting query info ---------------------------------------------------
         self.db_shapes = util.get_all_files("Data\\OriginalShapeDatabase")
         print(self.db_shapes)
-
         #current query
         self.query_path = None
         self.query_mesh = None
         self.similar_amt = 0
         # has every shape in the database and their corresponding similarity
-        self.similarity_shapes = None
+        self.similarity_shapes = []
 
         # setting the scene ----------------------------------------------------
         self.w = gui.Application.instance.create_window("Test GUI", 1080, 720)
@@ -37,11 +40,11 @@ class MainApplication:
         self.top_buttons = gui.Horiz(5, gui.Margins(0,0,0,0))
         
         self.choose_button = gui.Button("Choose")
-        self.choose_button.set_on_clicked(self.choose_mesh)
+        self.choose_button.set_on_clicked(self._on_choose_mesh)
         self.top_buttons.add_child(self.choose_button)
 
         self.import_button = gui.Button("Import")
-        self.import_button.set_on_clicked(self.import_mesh)
+        self.import_button.set_on_clicked(self._on_import_mesh)
         self.top_buttons.add_child(self.import_button)
 
         #self.w.add_child(self.top_buttons)
@@ -117,26 +120,67 @@ class MainApplication:
         self.right_panel.frame = gui.Rect(rect.x + left_width, rect.y, right_width, rect.height)
         
     def dummy_display(self):
-        # dummy test scroll 
+        # dummy test scroll
+        self.similar_amt = 50
         for i in range(50):
             #self.results_content.add_child(gui.Label(f"imagine a shape {i + 1}  |  Similarity: {1.0 / (i + 1):.4f}"))
             #loc, cat, name = self.db_shapes[i]
             similarity = (1.0/(i+1))
+            self.similarity_shapes.append(self.db_shapes[i])
+
             self.add_sim_result(self.db_shapes[i], similarity)
+        #self.
         # dummy test drawing a mesh AAAAAAAA
         mesh = self.db_shapes[0]
         self.renderer.display_mesh_from_entry(mesh)
 
     # should use the database from which you can choose 1 mesh
     # It displays this mesh and sets it as query mesh + location
-    def choose_mesh(self):
-        pass
+    def _on_import_mesh(self):
+        config.lg.log("clicked the choose mesh button")
+        dialog = gui.FileDialog(gui.FileDialog.OPEN, "Choose a mesh", self.w.theme)
+
+        dialog.add_filter(".obj", "3D meshes")
+        dialog.set_on_cancel(self._on_cancel)
+        dialog.set_on_done(self._on_done)
+        self.w.show_dialog(dialog)
+
+    def _on_cancel(self):
+        self.w.close_dialog()
+
+    def _on_done(self, path):
+        self.query_path = path
+        self.query_mesh = o3d.io.read_triangle_mesh(path)
+        self.renderer.display_mesh(self.query_mesh)
+        self.status.text = f"Loaded: {path}"
+        self.w.close_dialog()
+
+        #mesh = o3d.io.read_triangle_mesh(path)
+
+        #if mesh.is_empty():
+        #    config.lg.log("Could not load mesh")
+        #    return
+
+        #config.lg.log("Mesh loaded successfully")
 
     # should be able to 'import' a mesh
     # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
-    def import_mesh(self):
-        pass
+    def _on_choose_mesh(self):
+        self.mesh_dialog = gui.Dialog("Pick a mesh any mesh")
+        em = self.w.theme.font_size
+        layout = gui.Vert(em, gui.Margins(em, em, em, em))
+        self.mesh_list = gui.ListView()
+        self.mesh_list.set_items(str(entry[2]) for entry in self.db_shapes)
+
+        layout.add_child(self.mesh_list)
+
+        import_button = gui.Button("Import")
+        import_button.set_on_clicked(self._on_import_selected_mesh)
+        layout.add_child(import_button)
+
+        self.mesh_dialog.add_child(layout)
+        self.w.show_dialog(self.mesh_dialog)
 
     # only works if there is a query mesh
     # takes the query mesh location and computes a similarity score for EVERY mesh
@@ -156,7 +200,7 @@ class MainApplication:
 
     # takes the thingy from get_all_files
     # which is: ['database location', 'category', 'object name']
-    def add_sim_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 100):
+    def add_sim_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 150):
         if not os.path.isdir(display_db):
             ig = ImageGenerator()
             ig.generate_display_images()
@@ -170,7 +214,6 @@ class MainApplication:
         else:
             img = o3d.geometry.Image(np.full((img_size,img_size,3), 255, dtype=np.uint8))
         img_widget = gui.ImageWidget(img)
-
         img_layout = gui.Horiz()
         img_layout.add_child(img_widget)
 
