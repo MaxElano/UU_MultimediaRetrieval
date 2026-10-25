@@ -10,14 +10,15 @@ import numpy as np #fah
 import open3d.visualization.gui as gui
 
 class MainApplication:
-    def __init__(self): 
+    def __init__(self, db = "Data\\OriginalShapeDatabase"): 
         config.initialize(skip_renderer=True)
 
         self.app = gui.Application.instance
         self.app.initialize()
 
         # setting query info ---------------------------------------------------
-        self.db_shapes = util.get_all_files("Data\\OriginalShapeDatabase")
+        self.db = db
+        self.db_shapes = util.get_all_files(db)
 
         #current query
         self.query_path = None
@@ -32,7 +33,6 @@ class MainApplication:
         self.main_layout = gui.Horiz(8, gui.Margins(10, 10, 10, 10))
 
         # LEFT SIDE TOP: controls and the 3d display -------------------------------
-        #self.left_panel = gui.Vert(8, gui.Margins(0,0,0,0))
 
         # top buttons
         self.top_buttons = gui.Horiz(5, gui.Margins(0,0,0,0))
@@ -45,7 +45,6 @@ class MainApplication:
         self.import_button.set_on_clicked(self._on_import_mesh)
         self.top_buttons.add_child(self.import_button)
 
-        #self.w.add_child(self.top_buttons)
         self.top_container = gui.Vert()
         self.top_container.add_child(self.top_buttons)
         self.w.add_child(self.top_container)
@@ -55,22 +54,16 @@ class MainApplication:
         self.bottom = gui.Vert(5, gui.Margins(0,0,0,0))
 
         self.status = gui.Label("Choose or import a query mesh.")
-        #self.left_panel.add_child(self.status)
         self.bottom.add_child(self.status)
 
         # Compare button 
         self.compare_button = gui.Button("Compare")
-        self.compare_button.set_on_clicked(self.compare)
-        #self.left_panel.add_child(self.compare_button)
+        self.compare_button.set_on_clicked(self._on_comparison)
         self.bottom.add_child(self.compare_button)
         
         self.bottom_container = gui.Vert()
         self.bottom_container.add_child(self.bottom)
         self.w.add_child(self.bottom_container)
-
-        #self.w.add_child(self.bottom)
-        #self.w.add_child(self.left_panel)
-        #self.main_layout.add_child(self.left_panel)
 
         # RIGHT SIDE: results -----------------------------------------------
         self.right_panel = gui.Vert(8, gui.Margins(0,0,0,0))
@@ -83,8 +76,6 @@ class MainApplication:
         self.right_panel.add_child(self.results_scroll)
 
         self.w.add_child(self.right_panel)
-        #self.main_layout.add_child(self.right_panel)
-        #self.w.add_child(self.main_layout)
 
         # 3D scene
         # Als je de renderer toevoegd aan een subgroep dan gooit hij zieke fucking fittie
@@ -122,12 +113,11 @@ class MainApplication:
         self.similar_amt = 50
         for i in range(50):
             #self.results_content.add_child(gui.Label(f"imagine a shape {i + 1}  |  Similarity: {1.0 / (i + 1):.4f}"))
-            #loc, cat, name = self.db_shapes[i]
             similarity = (1.0/(i+1))
             self.similarity_shapes.append(self.db_shapes[i])
 
-            self.add_sim_result(self.db_shapes[i], similarity)
-        #self.
+            self.add_result(self.db_shapes[i], similarity)
+        #self.display_results()
         # dummy test drawing a mesh AAAAAAAA
         mesh = self.db_shapes[0]
         self.renderer.display_mesh_from_entry(mesh)
@@ -143,59 +133,104 @@ class MainApplication:
         self.w.show_dialog(dialog)
 
     def _on_cancel(self):
-        print("Cancelled", flush=True)
         self.w.close_dialog()
 
     def _on_done(self, path):
-        print("Selected:", path, flush=True)
         self.w.close_dialog()
-        print("Dialog closed", flush=True)
         self.query_path = path
         self.query_mesh = o3d.io.read_triangle_mesh(path)
         self.renderer.display_mesh(self.query_mesh)
-        #TODO JUST CHANGE TO TITLE OF MESH without obj
-        self.status.text = f"Loaded: {path}"
+        
+        self.status.text = f"Loaded: {os.path.split(path)[1]}"
 
     # should be able to 'import' a mesh
     # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
     def _on_choose_mesh(self):
-        pass
-        '''
-        self.mesh_dialog = gui.Dialog("Pick a mesh any mesh")
+        dialog = gui.Dialog("Pick a mesh any mesh")
+
         em = self.w.theme.font_size
-        layout = gui.Vert(em, gui.Margins(em, em, em, em))
-        self.mesh_list = gui.ListView()
-        self.mesh_list.set_items(entry[2] for entry in self.db_shapes)
+        layout = gui.Vert(2*em, gui.Margins(em, em, em, em))
 
-        layout.add_child(self.mesh_list)
+        cancel_button = gui.Button("X")
+        cancel_button.set_on_clicked(self._on_cancel)
+        layout.add_child(cancel_button)
 
-        import_button = gui.Button("Import")
-        import_button.set_on_clicked(self._on_import_selected_mesh)
-        layout.add_child(import_button)
+        self.class_widget = gui.Combobox()
+        classes = sorted(set(str(entry[1]) for entry in self.db_shapes))
+        for category in classes:
+            self.class_widget.add_item(category)
 
-        self.mesh_dialog.add_child(layout)
-        self.w.show_dialog(self.mesh_dialog)
-        '''
+        self.class_widget.set_on_selection_changed(self._on_class_changed)
+        layout.add_child(self.class_widget)
+
+        self.mesh_widget = gui.ListView()
+        layout.add_child(self.mesh_widget)
+
+        # first time around its the first class
+        mesh_list = [str(entry[2]) for entry in self.db_shapes 
+                if entry[1] == classes[0]]
+        self.mesh_widget.set_items(mesh_list)
+
+        choice_button = gui.Button("Import")
+        choice_button.set_on_clicked(self._on_choice)
+        layout.add_child(choice_button)
+
+        dialog.add_child(layout)
+
+        self.w.show_dialog(dialog)
+
+    def _on_class_changed(self, selected_class, *args):
+        mesh_list = [str(entry[2]) for entry in self.db_shapes 
+                     if entry[1] == selected_class]
+        self.mesh_widget.set_items(mesh_list)
+
+    def _on_choice(self):
+        category = self.class_widget.selected_text
+        shape = self.mesh_widget.selected_value
+        path = os.path.join(self.db, category, shape)
+        self._on_done(path)
+    
+    def _on_comparison(self):
+        # extract features of the query shape
+
+        # compute distances of query shape to all db shapes
+
+        # sort distances from low to high
+
+        # present similar shapes
+        self.get_similars()
+        self.display_similars()
+    
     # only works if there is a query mesh
     # takes the query mesh location and computes a similarity score for EVERY mesh
     # returns either the K or the ones under a certain threshold (implement diffeerent options)
-    # shows these in the right panel as : image + similarity score
-    def compare(self):
-        pass
 
+
+    # present the K best-matching shapes, plus their distances to the query, 
+    # Alternative: set a distance threshold t and present all shapes in the 
+    # database having a distance to the query lower than t. 
+    def get_similars(self, t = None, K = None):
+        pass
 
     # takes a list of shapes and their similarity scores
-    # which is: [['database location', 'category', 'object name'], sim_score]
-    def display_results(self):
+    # assuming an ordered list with similarity scores ranked high -> low
+    # [index, sim_score]
+    #TODO: DEPENDS ON OUTPUT FROM SIMILARITY COMPUTATION!!!
+    def display_similars(self):
         if self.similarity_shapes is None:
-            pass
+            return
             # update text with: 0 shapes found, something went wrong
-        pass
+        for shape in self.similarity_shapes:
+            pass
+            #index, sim_score = shape
+            #TODO: call add_result for every shape
+        #TODO: Change status to give the x amt of similar shapes
+
 
     # takes the thingy from get_all_files
     # which is: ['database location', 'category', 'object name']
-    def add_sim_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 150):
+    def add_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 150):
         if not os.path.isdir(display_db):
             ig = ImageGenerator()
             ig.generate_display_images()
@@ -221,7 +256,8 @@ class MainApplication:
         row.add_child(sim_info)
 
         self.results_content.add_child(row)
-        
+
+    # Helper function <3 -------------------------------------------------------------------
     # resize an image using numpy :O
     def resize_image(self, img, size=100):
         arr = np.asarray(img)
