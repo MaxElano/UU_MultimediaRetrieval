@@ -32,12 +32,11 @@ class FeatureDataNormalizer():
         for feature in ElemFeature:
             feature_nr, _ = feature.value
             values = columns[feature_nr]
-            normalized.append(self.min_max_normalization(values))
+            normalized.append(self.standardization(values))
 
         new_feature_db = np.transpose(np.asarray(normalized))
         # saves meta and new feature databases as numpy arrays in a seperate file
         util.save_numpy_file(new_path, metadata=meta_db, features=new_feature_db)
-        print("done with standardization")
 
     # normalization resulting in features always going from 0-1
     # already established to not be the best idea bc of outliers, but should be tested for completion i guess
@@ -48,9 +47,7 @@ class FeatureDataNormalizer():
         return new_values
 
     def standardization(self, feature_values):
-        '''
-        get average
-        get standard deviation
-        for feature values, subtract average, divide by standard deviation
-        '''
-        return feature_values
+        avg = np.mean(feature_values)
+        std = np.std(feature_values)
+        new_values = (feature_values - avg) / std
+        return new_values
