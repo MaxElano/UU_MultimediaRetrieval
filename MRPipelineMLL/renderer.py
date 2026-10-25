@@ -8,6 +8,10 @@ from enum import Enum
 import Utility.config as config
 import Utility.utility as util
 
+import open3d.visualization.gui as gui
+import open3d.visualization.rendering as rendering
+
+
 class RenderMode(Enum):
     #
     EMPTY = 0
@@ -208,3 +212,28 @@ class Renderer():
         config.rd.all_meshes = []
         config.rd.all_wireframes = []
         vis.clear_geometries()
+
+# GUI renderer; can be embedded into an existing window (i would hope)
+# it can only render 1 mesh cause it should only ever render 1 mesh
+class GUIRenderer:
+    def __init__(self, window, background_color = [0.3,0,0.3]):
+        self.window = window
+        self.scene_widget = gui.SceneWidget()
+        self.scene_widget.scene = rendering.Open3DScene(self.window.renderer)
+
+        self.scene_widget.scene.set_background([*background_color, 1.0])
+
+
+    def add_display_mesh(self, mesh):
+        self.clear()
+        material = rendering.MaterialRecord()
+        material.shader = "defaultLit"
+
+        self.scene_widget.scene.add_geometry("query_mesh", mesh, material)
+
+        bounds = self.scene_widget.scene.bounding_box
+        self.scene_widget.setup_camera(60.0, bounds, bounds.get_center())
+
+    def clear(self):
+        self.scene_widget.scene.clear_geometry()
+
