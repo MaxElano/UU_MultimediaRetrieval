@@ -223,9 +223,15 @@ class GUIRenderer:
 
         self.scene_widget.scene.set_background([*background_color, 1.0])
 
+    def display_mesh_from_entry(self, entry):
+        file_path = util.get_path(entry)
+        mesh = o3d.io.read_triangle_mesh(file_path)
+        self.display_mesh(mesh)
 
-    def add_display_mesh(self, mesh):
+    def display_mesh(self, mesh):
         self.clear()
+        mesh.compute_vertex_normals()
+
         material = rendering.MaterialRecord()
         material.shader = "defaultLit"
 
