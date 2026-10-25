@@ -18,4 +18,4 @@ fe.extract_features_from_database()
 
 fn = FeatureDataNormalizer()
 fn.standardize_all(new_path="Data\\DataAnalysis\\featureDatabasesStandardized.npz")
-
+fn.normalize_all_histograms()

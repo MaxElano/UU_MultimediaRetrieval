@@ -38,6 +38,35 @@ class FeatureDataNormalizer():
         # saves meta and new feature databases as numpy arrays in a seperate file
         util.save_numpy_file(new_path, metadata=meta_db, features=new_feature_db)
 
+    def normalize_all_histograms(self, old_path="Data\\DataAnalysis\\distributionDatabases.npz", new_path="Data\\DataAnalysis\\distributionDatabasesNorm.npz"):
+        dstr_databases = util.load_numpy_file(old_path)
+
+        a3 = self.normalize_distributions(dstr_databases['A3.npy'])
+        d1 = self.normalize_distributions(dstr_databases['D1.npy'])
+        d2 = self.normalize_distributions(dstr_databases['D2.npy'])
+        d3 = self.normalize_distributions(dstr_databases['D3.npy'])
+        d4 = self.normalize_distributions(dstr_databases['D4.npy'])
+
+                # save all distributions in one file
+        util.save_numpy_file(new_path, 
+                             A3=a3, D1=d1, D2=d2, D3=d3, D4=d4)
+
+
+
+    # not most optimized with indices being apart of the db, might be changed later
+    def normalize_distributions(self, distribution_db):
+        norm_db = []
+        for row in distribution_db:
+            index = row[0]
+            hist_area = np.sum(row) - index
+            norm = row/hist_area
+            norm[0] = index
+            norm_db.append(norm)
+
+        return np.asarray(norm_db)
+
+
+
     # normalization resulting in features always going from 0-1
     # already established to not be the best idea bc of outliers, but should be tested for completion i guess
     def min_max_normalization(self, feature_values):
