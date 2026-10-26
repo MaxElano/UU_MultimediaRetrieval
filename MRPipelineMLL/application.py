@@ -29,7 +29,7 @@ class MainApplication:
         self.similarity_shapes = []
 
         # setting the scene ----------------------------------------------------
-        self.w = gui.Application.instance.create_window("Test GUI", 1280, 720)
+        self.w = gui.Application.instance.create_window("Shape Comparison", 1280, 720)
 
         self.main_layout = gui.Horiz(8, gui.Margins(10, 10, 10, 10))
 
@@ -110,11 +110,12 @@ class MainApplication:
 
         self.sim_container.frame = gui.Rect(rect.x + left_width, rect.y, right_width, rect.y + top_height)
         self.results_scroll.frame = gui.Rect(rect.x + left_width, rect.y + top_height, right_width, scene_height + bottom_height)
-        
-    # should use the database from which you can choose 1 mesh
+
+    # should be able to 'import' a mesh
+    # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
     def _on_import_mesh(self):
-        dialog = gui.FileDialog(gui.FileDialog.OPEN, "Choose a mesh", self.w.theme)
+        dialog = gui.FileDialog(gui.FileDialog.OPEN, "Import a mesh", self.w.theme)
 
         dialog.add_filter(".obj", "3D meshes")
         dialog.set_on_cancel(self._on_cancel)
@@ -133,7 +134,7 @@ class MainApplication:
         
         self.status.text = f"Loaded: {os.path.split(path)[1]} from: {os.path.split(os.path.split(path)[0])[1]}"
 
-    # should be able to 'import' a mesh
+    # should be able to 'choose' a mesh from the database
     # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
     def _on_choose_mesh(self):
@@ -163,17 +164,16 @@ class MainApplication:
         cancel_button.set_on_clicked(self._on_cancel)
         buttons.add_child(cancel_button)
 
-        choice_button = gui.Button("Import")
+        choice_button = gui.Button("Open")
         choice_button.set_on_clicked(self._on_choice)
         buttons.add_child(choice_button)
 
         layout.add_child(buttons)
-
         dialog.add_child(layout)
 
         self.w.show_dialog(dialog)
 
-    def _on_class_changed(self, selected_class, *args):
+    def _on_class_changed(self, selected_class, *args): # capture all
         mesh_list = [str(entry[2]) for entry in self.db_shapes 
                      if entry[1] == selected_class]
         self.mesh_widget.set_items(mesh_list)
@@ -260,7 +260,7 @@ class MainApplication:
         self.results.add_child(row)
 
     # Helper function <3 -------------------------------------------------------------------
-    # resize an image using numpy :O
+    # resize an image using numpy
     def resize_image(self, img, size=100):
         arr = np.asarray(img)
         height, width = arr.shape[:2]
