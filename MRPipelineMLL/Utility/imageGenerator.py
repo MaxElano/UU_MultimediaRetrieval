@@ -64,7 +64,6 @@ class ImageGenerator():
                       camera_angle = CameraAngle.FRONT
                       ):
         for path in paths:
-            #sorry gehardcode TIJDELIJK
             mesh = config.ml.load_mesh(path, open3d=True)
             config.rd.add_mesh(mesh, path)
 

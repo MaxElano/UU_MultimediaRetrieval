@@ -9,9 +9,10 @@ import open3d as o3d
 import numpy as np #fah
 import open3d.visualization.gui as gui
 
+# note: first time you run it will create ALL display icons so it will take a while
 class MainApplication:
-    def __init__(self, db = "Data\\OriginalShapeDatabase"): 
-        config.initialize(skip_renderer=True)
+    def __init__(self, db = "Data\\OriginalShapeDatabase", K = 20, t = 0.5): 
+        #config.initialize(skip_renderer=True)
 
         self.app = gui.Application.instance
         self.app.initialize()
@@ -23,19 +24,19 @@ class MainApplication:
         #current query
         self.query_path = None
         self.query_mesh = None
-        self.similar_amt = 0
+
         # has every shape in the database and their corresponding similarity
         self.similarity_shapes = []
 
         # setting the scene ----------------------------------------------------
-        self.w = gui.Application.instance.create_window("Test GUI", 1080, 720)
+        self.w = gui.Application.instance.create_window("Test GUI", 1280, 720)
 
         self.main_layout = gui.Horiz(8, gui.Margins(10, 10, 10, 10))
 
         # LEFT SIDE TOP: controls and the 3d display -------------------------------
 
         # top buttons
-        self.top_buttons = gui.Horiz(5, gui.Margins(0,0,0,0))
+        self.top_buttons = gui.Horiz(5, gui.Margins(2,2,2,2))
         
         self.choose_button = gui.Button("Choose")
         self.choose_button.set_on_clicked(self._on_choose_mesh)
@@ -66,16 +67,19 @@ class MainApplication:
         self.w.add_child(self.bottom_container)
 
         # RIGHT SIDE: results -----------------------------------------------
-        self.right_panel = gui.Vert(8, gui.Margins(0,0,0,0))
+        self.sim_label = gui.Label(f"The 0 most similar shapes")
+        self.sim_container = gui.Vert(8, gui.Margins(2,2,2,2))
+        self.sim_container.add_child(self.sim_label)
+        self.w.add_child(self.sim_container)
 
-        self.similarity_label = gui.Label(f"{self.similar_amt} most similar shapes")
-        self.right_panel.add_child(self.similarity_label)
         self.results_scroll = gui.ScrollableVert(8, gui.Margins(2,2,2,2))
-        self.results_content = gui.Vert(8, gui.Margins(2,2,2,2))
-        self.results_scroll.add_child(self.results_content)
-        self.right_panel.add_child(self.results_scroll)
+        self.results_content = gui.WidgetProxy()
+        self.results = gui.Vert(8, gui.Margins(2,2,2,2))
+        self.results_content.set_widget(self.results)
 
-        self.w.add_child(self.right_panel)
+        self.results_scroll.background_color = gui.Color(0.25, 0.25, 0.25)
+        self.results_scroll.add_child(self.results_content)
+        self.w.add_child(self.results_scroll)
 
         # 3D scene
         # Als je de renderer toevoegd aan een subgroep dan gooit hij zieke fucking fittie
@@ -85,8 +89,6 @@ class MainApplication:
 
         self.w.set_on_layout(self.on_layout)
 
-        self.dummy_display()
-
     def run(self):
          self.app.run()
 
@@ -95,7 +97,7 @@ class MainApplication:
         left_width = int(rect.width * 0.50)
         right_width = rect.width - left_width
 
-        top_height = int(rect.height * 0.1)
+        top_height = int(rect.height * 0.11)
         bottom_height = int(rect.height*0.2)
 
         scene_height = rect.height - top_height - bottom_height
@@ -105,23 +107,10 @@ class MainApplication:
         self.renderer.scene_widget.frame = gui.Rect(rect.x, rect.y + top_height,left_width,scene_height)
 
         self.bottom_container.frame = gui.Rect(rect.x, rect.y + top_height + scene_height, left_width, bottom_height)
-        
-        self.right_panel.frame = gui.Rect(rect.x + left_width, rect.y, right_width, rect.height)
-        
-    def dummy_display(self):
-        # dummy test scroll
-        self.similar_amt = 50
-        for i in range(50):
-            #self.results_content.add_child(gui.Label(f"imagine a shape {i + 1}  |  Similarity: {1.0 / (i + 1):.4f}"))
-            similarity = (1.0/(i+1))
-            self.similarity_shapes.append(self.db_shapes[i])
 
-            self.add_result(self.db_shapes[i], similarity)
-        #self.display_results()
-        # dummy test drawing a mesh AAAAAAAA
-        mesh = self.db_shapes[0]
-        self.renderer.display_mesh_from_entry(mesh)
-
+        self.sim_container.frame = gui.Rect(rect.x + left_width, rect.y, right_width, rect.y + top_height)
+        self.results_scroll.frame = gui.Rect(rect.x + left_width, rect.y + top_height, right_width, scene_height + bottom_height)
+        
     # should use the database from which you can choose 1 mesh
     # It displays this mesh and sets it as query mesh + location
     def _on_import_mesh(self):
@@ -138,10 +127,11 @@ class MainApplication:
     def _on_done(self, path):
         self.w.close_dialog()
         self.query_path = path
+        print(self.query_path)
         self.query_mesh = o3d.io.read_triangle_mesh(path)
         self.renderer.display_mesh(self.query_mesh)
         
-        self.status.text = f"Loaded: {os.path.split(path)[1]}"
+        self.status.text = f"Loaded: {os.path.split(path)[1]} from: {os.path.split(os.path.split(path)[0])[1]}"
 
     # should be able to 'import' a mesh
     # save this mesh to a set location in our structure
@@ -151,10 +141,6 @@ class MainApplication:
 
         em = self.w.theme.font_size
         layout = gui.Vert(2*em, gui.Margins(em, em, em, em))
-
-        cancel_button = gui.Button("X")
-        cancel_button.set_on_clicked(self._on_cancel)
-        layout.add_child(cancel_button)
 
         self.class_widget = gui.Combobox()
         classes = sorted(set(str(entry[1]) for entry in self.db_shapes))
@@ -172,9 +158,16 @@ class MainApplication:
                 if entry[1] == classes[0]]
         self.mesh_widget.set_items(mesh_list)
 
+        buttons = gui.Horiz(8, gui.Margins(2,2,2,2))
+        cancel_button = gui.Button("Cancel")
+        cancel_button.set_on_clicked(self._on_cancel)
+        buttons.add_child(cancel_button)
+
         choice_button = gui.Button("Import")
         choice_button.set_on_clicked(self._on_choice)
-        layout.add_child(choice_button)
+        buttons.add_child(choice_button)
+
+        layout.add_child(buttons)
 
         dialog.add_child(layout)
 
@@ -188,24 +181,42 @@ class MainApplication:
     def _on_choice(self):
         category = self.class_widget.selected_text
         shape = self.mesh_widget.selected_value
-        path = os.path.join(self.db, category, shape)
+        path = os.path.abspath(os.path.join(self.db, category, shape))
         self._on_done(path)
     
     def _on_comparison(self):
-        # extract features of the query shape
+        self.similarity_shapes = []
+        self.results = gui.Vert(8, gui.Margins(2,2,2,2))
+        self.results_content.set_widget(self.results)
+
+        #TODO: PLACEHOLDER DATA
+        for i in range(50):
+            similarity = (1.0/(i+1))
+            self.similarity_shapes.append([self.db_shapes[i], similarity])
+
+        # preprocess and extract features of the query shape
+        #self.prepare_shape()
 
         # compute distances of query shape to all db shapes
+        #self.compute_distances()
 
         # sort distances from low to high
+        #self.sort_distances()
 
         # present similar shapes
-        self.get_similars()
+        #self.get_similars()
         self.display_similars()
-    
-    # only works if there is a query mesh
-    # takes the query mesh location and computes a similarity score for EVERY mesh
-    # returns either the K or the ones under a certain threshold (implement diffeerent options)
 
+        self.sim_label.text = f"The {len(self.similarity_shapes)} most similar shapes"
+
+    def prepare_shape():
+        pass
+
+    def compute_distances():
+        pass
+
+    def sort_distances():
+        pass
 
     # present the K best-matching shapes, plus their distances to the query, 
     # Alternative: set a distance threshold t and present all shapes in the 
@@ -213,21 +224,11 @@ class MainApplication:
     def get_similars(self, t = None, K = None):
         pass
 
-    # takes a list of shapes and their similarity scores
-    # assuming an ordered list with similarity scores ranked high -> low
-    # [index, sim_score]
-    #TODO: DEPENDS ON OUTPUT FROM SIMILARITY COMPUTATION!!!
     def display_similars(self):
-        if self.similarity_shapes is None:
-            return
-            # update text with: 0 shapes found, something went wrong
-        for shape in self.similarity_shapes:
-            pass
-            #index, sim_score = shape
-            #TODO: call add_result for every shape
-        #TODO: Change status to give the x amt of similar shapes
-
-
+        for combination in self.similarity_shapes:
+            shape, similarity = combination
+            self.add_result(shape, similarity)
+        
     # takes the thingy from get_all_files
     # which is: ['database location', 'category', 'object name']
     def add_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 150):
@@ -246,16 +247,17 @@ class MainApplication:
         img_widget = gui.ImageWidget(img)
         img_layout = gui.Horiz()
         img_layout.add_child(img_widget)
-
+        
         sim_info = gui.Vert()
         sim_info.add_child(gui.Label(file_name))
+        # ROUNDING
         sim_info.add_child(gui.Label(f"Similarity: {similarity:.5f}"))
+        sim_info.add_child(gui.Label(f"Shape Class: {shape_class}"))
 
-        row = gui.Vert()
+        row = gui.Horiz()
         row.add_child(img_layout)
         row.add_child(sim_info)
-
-        self.results_content.add_child(row)
+        self.results.add_child(row)
 
     # Helper function <3 -------------------------------------------------------------------
     # resize an image using numpy :O
@@ -267,6 +269,6 @@ class MainApplication:
         resized = arr[y[:,None], x[None,:]]
         return o3d.geometry.Image(np.ascontiguousarray(resized))
 
-MainApplication().run()
-#ma = MainApplication()
-#ma.generate_display_images()
+# run using:
+# MainApplication().run()
+

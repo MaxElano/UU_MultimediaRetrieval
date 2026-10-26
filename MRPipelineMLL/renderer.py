@@ -216,7 +216,7 @@ class Renderer():
 # GUI renderer; can be embedded into an existing window (i would hope)
 # it can only render 1 mesh cause it should only ever render 1 mesh
 class GUIRenderer:
-    def __init__(self, window, background_color = [0.3,0,0.3]):
+    def __init__(self, window, background_color = [1,1,1]):
         self.window = window
         self.scene_widget = gui.SceneWidget()
         self.scene_widget.scene = rendering.Open3DScene(self.window.renderer)
