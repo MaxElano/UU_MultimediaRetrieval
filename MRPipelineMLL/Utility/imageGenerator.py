@@ -78,24 +78,11 @@ class ImageGenerator():
                       ):
         for mesh in meshes:
             if show_face_normals:
-                mesh = mesh.compute_triangle_normals(normalized=False)
-                face_centres = np.average(np.asarray(mesh.vertices)[mesh.triangles], axis=1)
-                normals = mesh.triangle_normals
-                arrows = []
-                for i in range(len(face_centres)):
-                    a = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius = 0.5, cone_radius=0.7, cylinder_height=2.0, cone_height=1.0)
-                    v = np.cross(normals[i], [0,0,1])
-                    c = np.dot(normals[i], [0,0,1])
-                    s = np.linalg.norm(v)
-                    kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-                    rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
-                    a.rotate(rotation_matrix, [0,0,0])
-                    a.translate(face_centres[i])
-                    arrows.append(a)
-                    config.rd.add_meshes(arrows, "L")
+                # pcd = o3d.geometry.PointCloud()
+                # pcd.points = o3d.utility.Vector3dVector(np.asarray(mesh.vertices))
+                # pcd.estimate_normals()
+                pass
                 
-            config.rd.add_mesh(mesh, "L")
-
         self.generate_screenshot(camera_angle, location, title)
     
     def generate_from_arrays(self,
