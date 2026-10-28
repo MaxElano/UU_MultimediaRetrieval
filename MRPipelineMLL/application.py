@@ -8,12 +8,13 @@ from Utility.imageGenerator import ImageGenerator
 import open3d as o3d
 import numpy as np #fah
 import open3d.visualization.gui as gui
+from Matching.matcher import Matcher
 
 # note: first time you run it will create ALL display icons so it will take a while
 class MainApplication:
     def __init__(self, db = "Data\\OriginalShapeDatabase", K = 20, t = 0.5): 
         #config.initialize(skip_renderer=True)
-
+        self.matcher = Matcher()
         self.app = gui.Application.instance
         self.app.initialize()
 
@@ -189,39 +190,25 @@ class MainApplication:
         self.results = gui.Vert(8, gui.Margins(2,2,2,2))
         self.results_content.set_widget(self.results)
 
-        #TODO: PLACEHOLDER DATA
-        for i in range(50):
-            similarity = (1.0/(i+1))
-            self.similarity_shapes.append([self.db_shapes[i], similarity])
+        # #TODO: PLACEHOLDER DATA
+        #for i in range(50):
+        #    similarity = (1.0/(i+1))
+        #    self.similarity_shapes.append([self.db_shapes[i], similarity])
 
-        # preprocess and extract features of the query shape
-        #self.prepare_shape()
-
-        # compute distances of query shape to all db shapes
-        #self.compute_distances()
-
-        # sort distances from low to high
-        #self.sort_distances()
-
+        #Use matcher to find closest results
+        sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path)
+        self.similarity_shapes.extend(zip(sorted_shapes, sorted_distances))
         # present similar shapes
         #self.get_similars()
         self.display_similars()
 
         self.sim_label.text = f"The {len(self.similarity_shapes)} most similar shapes"
 
-    def prepare_shape():
-        pass
-
-    def compute_distances():
-        pass
-
-    def sort_distances():
-        pass
-
     # present the K best-matching shapes, plus their distances to the query, 
     # Alternative: set a distance threshold t and present all shapes in the 
     # database having a distance to the query lower than t. 
     def get_similars(self, t = None, K = None):
+        #TODO Move this to Matcher
         pass
 
     def display_similars(self):
@@ -231,11 +218,11 @@ class MainApplication:
         
     # takes the thingy from get_all_files
     # which is: ['database location', 'category', 'object name']
-    def add_result(self, file, similarity, display_db = "Data\\Screenshots\\Displayimages", img_size = 150):
+    def add_result(self, file, similarity, display_db = "Data\\Screenshots\\DisplayImages", img_size = 150):
         if not os.path.isdir(display_db):
             ig = ImageGenerator()
             ig.generate_display_images()
-        _, shape_class, file_name = file
+        _, file_name, shape_class = file
         img_name = os.path.splitext(file_name)[0] + ".png"
         img_path = os.path.join(display_db, shape_class, img_name)
 

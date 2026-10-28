@@ -144,7 +144,7 @@ class NormalizeChecker():
         pa_error = self.check_principal_axes(mesh_values)
         scale_error = self.check_scaling(mesh_values)
         remesh_error = self.check_remeshing(mesh_values)
-        flip_error = self.check_flip(mesh, path, mesh_values)
+        flip_error = self.check_flip(mesh_values)
         return(bc_error, pa_error, scale_error, remesh_error, flip_error)
 
     # Check translation of barycenter to origin

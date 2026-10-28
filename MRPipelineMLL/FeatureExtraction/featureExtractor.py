@@ -18,6 +18,7 @@ class FeatureExtractor():
 
     # extracts from a given database and stores them in two numpy arrays
     def extract_features_from_database(self, directory ="Data\\NormalizedShapeDatabase"):
+        config.lg.log(f"Starting feature extraction process at location {directory}")
         index = 0
         feature_list = []
         metadata_list = []
@@ -29,6 +30,7 @@ class FeatureExtractor():
 
         start = time.time()
         all_files = util.get_all_files(directory)
+        pc = util.ProgressCounter(len(all_files), 250, "objects extracted")
 
         for file in all_files:
             _, shape_class, file_name = file
@@ -45,6 +47,7 @@ class FeatureExtractor():
             d4_list.append(d4)
 
             index += 1
+            pc.increment()
    
         # saves meta and feature databases as numpy arrays in a seperate file
         util.save_numpy_file("Data\\DataAnalysis\\featureDatabases.npz", metadata=metadata_list, features=feature_list)
@@ -290,7 +293,7 @@ class FeatureExtractor():
 
         return 
 
-    def compute_variance
+    #def compute_variance
 
 # config.initialize(skip_renderer=True)    
 # fe = FeatureExtractor()
