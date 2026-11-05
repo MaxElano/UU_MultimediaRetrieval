@@ -20,34 +20,15 @@ class Matcher():
 
     # <--- Methods for application or inbetween --->
     def get_meta_sorted_by_distance(self, path_to_mesh):
-        sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh)
+        sorted_indices, sorted_distances = self.get_indices_sorted_by_distance(path_to_mesh)
         return self.meta_db[sorted_indices], sorted_distances
     
+
     def get_indices_sorted_by_distance(self, path_to_mesh):
         nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
-        config.lg.log(nm_global_features)
 
-        distances = np.zeros(self.global_features.shape[0])
-        for idx, name, _ in self.meta_db:
-            current_global_features = self.global_features[self.global_features[:,0] == float(idx)]
-            
-            dist = distFunc.get_euclidean_distance(current_global_features[0,1:], nm_global_features[1:]) 
-            distances[int(idx)] += dist
-
-            for feature in DistFeature:
-                column, name = feature.value
-                dist_table = self.distribution_features[name]
-                current_dist_features = dist_table[dist_table[:,0] == float(idx)]
-                dist2 = distFunc.get_earth_movers_distance(current_dist_features[0,1:], nm_distribution_features[column - 1][1:]) 
-                distances[int(idx)] += dist2
-
-        sorted_indices = np.argsort(distances)
-        return sorted_indices, distances[sorted_indices]
-
-    def get_indices_sorted_by_distance_ann(self, path_to_mesh):
-        nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
-
-        pre_selected = self.ann.get_ann(np.delete(nm_global_features, 0), 20, 0.5) 
+        # keeping the distances knn returns for future comparisons, perhaps
+        knn_dist, pre_selected = self.ann.k_nearest_neighbors(np.delete(nm_global_features, 0), 100) 
 
         distances = np.zeros(len(pre_selected))
         for i in range(len(pre_selected)):
@@ -63,8 +44,8 @@ class Matcher():
                 dist2 = distFunc.get_earth_movers_distance(current_dist_features[0,1:], nm_distribution_features[column - 1][1:]) 
                 distances[i] += dist2
         
-        sorted_indices = np.argsort(distances)
-        return pre_selected[sorted_indices], distances[sorted_indices]
+        sorted = np.argsort(distances)
+        return pre_selected[sorted], distances[sorted]
 
     # <--- Util Functions --->
     def get_input_features(self, path_to_mesh):

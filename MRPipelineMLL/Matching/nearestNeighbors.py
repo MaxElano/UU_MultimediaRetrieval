@@ -15,16 +15,6 @@ class ANN_matcher():
         self.kdtree = sp.KDTree(self.feature_db)
         config.lg.log("Finished building KDTree")
         
-
-    def get_ann(self, point, k, r):
-        knn_distances, knn_indices = self.k_nearest_neighbors(point, k)
-        rnn = self.r_nearest_neighbors(point, r)
-
-        if len(knn_indices) < len(rnn): #i dont think this is correct 
-            return rnn
-        else:
-            return knn_indices 
-        
     #returns the approximate k nearest neighbors from the kd tree
     def k_nearest_neighbors(self, point, k):
         knn_distances, knn_indices = self.kdtree.query(point, k=k)
@@ -34,3 +24,4 @@ class ANN_matcher():
     def r_nearest_neighbors(self, point, r):
         rnn= self.kdtree.query_ball_point(point, r)
         return rnn
+
