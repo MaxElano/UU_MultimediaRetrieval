@@ -44,9 +44,9 @@ def get_manhatten_distance(feature_vector_1, feature_vector_2, weights = None):
 
 ''' Assumes all values to be standardized and only for single value features'''
 def get_euclidean_distance(feature_vector_1, feature_vector_2, weights = None):
-    if weights:
-        feature_vector_1 *= weights
-        feature_vector_2 *= weights
+    if type(weights) is np.ndarray:
+        feature_vector_1 = np.multiply(feature_vector_1, weights)
+        feature_vector_2 = np.multiply(feature_vector_2, weights)
     diff = np.power(np.absolute(feature_vector_1 - feature_vector_2), 2)
     dist = np.power(np.sum(diff), 1/2)
     return dist

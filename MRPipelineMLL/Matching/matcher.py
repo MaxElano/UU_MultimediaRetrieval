@@ -15,6 +15,7 @@ from FeatureExtraction.featureDataNormalizer import FeatureDataNormalizer
 class Matcher():    
     def __init__(self):
         self.meta_db, self.global_features, self.distribution_features = self.get_feature_tables("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
+        self.glob_weights, self.dist_weights = self.get_weights("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
 
     # <--- Methods for application or inbetween --->
     def get_meta_sorted_by_distance(self, path_to_mesh):
@@ -24,18 +25,25 @@ class Matcher():
     def get_indices_sorted_by_distance(self, path_to_mesh):
         nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
         
-        distances = np.zeros(self.global_features.shape[0])
+        distances = np.zeros(self.meta_db.shape[0])
         for idx, name, _ in self.meta_db:
+            if np.all(self.global_features[:,0] != float(idx)):
+                config.lg.log(f"index {idx} missing in global feature database")
+                continue
+            if np.all(self.distribution_features['A3'][:,0] != float(idx)):
+                config.lg.log(f"index {idx} missing in distribution feature database")
+                continue
+
             current_global_features = self.global_features[self.global_features[:,0] == float(idx)]
-            
-            dist = distFunc.get_euclidean_distance(current_global_features[0,1:], nm_global_features[1:]) 
+            dist = distFunc.get_euclidean_distance(current_global_features[0,1:], nm_global_features[1:], self.glob_weights) 
+
             distances[int(idx)] += dist
 
             for feature in DistFeature:
                 column, name = feature.value
                 dist_table = self.distribution_features[name]
                 current_dist_features = dist_table[dist_table[:,0] == float(idx)]
-                dist2 = distFunc.get_earth_movers_distance(current_dist_features[0,1:], nm_distribution_features[column - 1][1:]) 
+                dist2 = self.dist_weights[column - 1] * distFunc.get_earth_movers_distance(current_dist_features[0,1:], nm_distribution_features[column - 1][1:]) 
                 distances[int(idx)] += dist2
 
         sorted_indices = np.argsort(distances)
@@ -78,3 +86,13 @@ class Matcher():
         feature_db = feature_databases['features']
         dist_db = util.load_numpy_file(location_distributions)
         return meta_db, feature_db, dist_db
+
+    def get_weights(self, location_global_features, location_distributions):
+        print("Start getting weights")
+        glob_weights = util.load_numpy_file(location_global_features)["weight_factors"]
+        dist_weights = util.load_numpy_file(location_distributions)["weight_factors"]
+        total = np.sum(glob_weights) + np.sum(dist_weights)
+        print(glob_weights)
+        print(dist_weights)
+        print("Done getting weights")
+        return glob_weights/total, dist_weights/total

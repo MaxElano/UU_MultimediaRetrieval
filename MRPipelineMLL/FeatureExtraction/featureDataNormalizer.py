@@ -45,8 +45,9 @@ class FeatureDataNormalizer():
             pc.increment()
 
         new_feature_db = np.transpose(np.asarray(normalized))
+        weight_factors = np.ones(new_feature_db.shape[1] - 1)
         # saves meta and new feature databases as numpy arrays in a seperate file
-        util.save_numpy_file(new_path, metadata=meta_db, features=new_feature_db, avgs=avgs, stds=stds)
+        util.save_numpy_file(new_path, metadata=meta_db, features=new_feature_db, avgs=avgs, stds=stds, weight_factors=weight_factors)
         config.lg.log(f"Done standardizating")
 
     def normalize_all_histograms(self, old_path="Data\\DataAnalysis\\distributionDatabases.npz", new_path="Data\\DataAnalysis\\distributionDatabasesNorm.npz"):
@@ -58,9 +59,11 @@ class FeatureDataNormalizer():
         d3 = self.normalize_distributions(dstr_databases['D3.npy'])
         d4 = self.normalize_distributions(dstr_databases['D4.npy'])
 
-                # save all distributions in one file
+        weight_factors = np.ones(5)
+
+        # save all distributions in one file
         util.save_numpy_file(new_path, 
-                             A3=a3, D1=d1, D2=d2, D3=d3, D4=d4)
+                             A3=a3, D1=d1, D2=d2, D3=d3, D4=d4, weight_factors=weight_factors)
         config.lg.log(f"Done normalizing")
 
     # not most optimized with indices being apart of the db, might be changed later
