@@ -100,7 +100,7 @@ class Renderer():
         self.all_meshes = []
         self.all_wireframes = []
         self.visualizer.clear_geometries()
-        self.visualizer.reset_view_point()
+        self.visualizer.reset_view_point(reset_bounding_box = True)
 
     # Generate wireframe of SINGLE mesh
     def generate_wireframe(mesh, label):
