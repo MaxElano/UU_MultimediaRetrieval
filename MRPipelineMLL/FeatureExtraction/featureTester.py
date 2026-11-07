@@ -62,14 +62,16 @@ class FeatureTester():
             self.save_elementary_feature(value_min, feature, index_min, "Minimum")
             self.save_elementary_feature(value_max, feature, index_max, "Maximum")
 
-        title, mesh, feature_value = self.compare_sphere()
-        self.save_elementary_feature_from_mesh(feature_value, ElemFeature.SPH, mesh, title)
+        title, mesh, sphericity, eccentricity = self.compare_sphere()
+        self.save_elementary_feature_from_mesh(sphericity, ElemFeature.SPH, mesh, title)
+        self.save_elementary_feature_from_mesh(eccentricity, ElemFeature.ECC, mesh, title)
+
         title, mesh, feature_value = self.compare_rectangle()
         self.save_elementary_feature_from_mesh(feature_value, ElemFeature.RECT, mesh, title)
 
         # generate distribution features
-        for feature in DistFeature:
-            self.plot_per_category(feature)
+        #for feature in DistFeature:
+        #    self.plot_per_category(feature)
 
     # works for elementary features
     def get_extreme_feature(self, 
@@ -124,7 +126,7 @@ class FeatureTester():
 
         mesh_location = from_database + mesh_category + "\\" + mesh_name
 
-        self.ig.generateFromPath([mesh_location], self.ss_save_folder, title)
+        self.ig.generate_from_path([mesh_location], self.ss_save_folder, title)
 
         with open(self.log_location, "a", encoding="utf-8") as f:
             f.write(f"{description} {feature_name}: {feature_value}\n")
@@ -147,6 +149,7 @@ class FeatureTester():
 
             plt.xlabel("Bins")
             plt.ylabel(f"Distribution variable")
+            plt.title(f"{feature_name} distribution of {category}")
             plt.tight_layout()
             plt.savefig(self.log_save_folder + "\\" + feature_name + "_" + category + ".png", dpi=300)
             plt.close()
@@ -163,7 +166,12 @@ class FeatureTester():
         compactness = FeatureExtractor.compactness(FeatureExtractor, surface, volume)
         sphericity = FeatureExtractor.sphericity(FeatureExtractor, compactness)
 
-        return "sphere", sphere_mesh, sphericity
+        convex_hull, _ = sphere_mesh.compute_convex_hull()
+        obb = convex_hull.get_axis_aligned_bounding_box() #we can use axis aligned here bc of normalization step
+        eigenvalues = obb.get_extent()
+        eccentricity =  np.max(eigenvalues)/np.min(eigenvalues)
+
+        return "sphere", sphere_mesh, sphericity, eccentricity
 
     # Rectangularity -> generate rectangle tc
     def compare_rectangle(self):
@@ -212,5 +220,5 @@ class FeatureTester():
             plt.close()
 
 
-# ft = FeatureTester()
-# ft.testFeatureExtraction()
+ft = FeatureTester()
+ft.test_feature_extraction()

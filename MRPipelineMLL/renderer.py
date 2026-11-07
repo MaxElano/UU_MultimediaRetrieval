@@ -216,7 +216,7 @@ class Renderer():
 # GUI renderer; can be embedded into an existing window (i would hope)
 # it can only render 1 mesh cause it should only ever render 1 mesh
 class GUIRenderer:
-    def __init__(self, window, background_color = [1,1,1]):
+    def __init__(self, window, background_color = [1,1,1], axis = False):
         self.window = window
         self.scene_widget = gui.SceneWidget()
         self.scene_widget.scene = rendering.Open3DScene(self.window.renderer)
@@ -242,4 +242,37 @@ class GUIRenderer:
 
     def clear(self):
         self.scene_widget.scene.clear_geometry()
+    
+    def add_world_axis(self):
+        meshes = self.create_custom_world_axis()
+
+        material = rendering.MaterialRecord()
+        material.shader = "defaultLit"
+
+        for i, mesh in enumerate(meshes):
+            mesh.compute_vertex_normals()
+            self.scene_widget.scene.add_geometry(
+                f"World Axis {i}",
+                mesh,
+                material
+            )
+    def create_custom_world_axis(self):
+        world_axis_meshes = []
+        scale = 0.01
+        mesh1 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+        mesh1.paint_uniform_color(np.asarray([0,0,1]))
+        world_axis_meshes.append(mesh1)
+        mesh2 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+        mesh2.paint_uniform_color(np.asarray([0,1,0]))
+        r = mesh2.get_rotation_matrix_from_xyz((-np.pi / 2, 0, 0))
+        mesh2.rotate(r, [0,0,0])
+        world_axis_meshes.append(mesh2)
+        mesh3 = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius= 1.0 * scale, cone_radius= 1.5 * scale, cylinder_height= 100.0 * scale, cone_height = 4.0 * scale)
+        mesh3.paint_uniform_color(np.asarray([1,0,0]))
+        r = mesh3.get_rotation_matrix_from_xyz((0, np.pi / 2, 0))
+        mesh3.rotate(r, [0,0,0])
+        world_axis_meshes.append(mesh3)
+
+        return world_axis_meshes
+
 
