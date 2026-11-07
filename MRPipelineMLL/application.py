@@ -195,14 +195,18 @@ class MainApplication:
         #    similarity = (1.0/(i+1))
         #    self.similarity_shapes.append([self.db_shapes[i], similarity])
 
-        #Use matcher to find closest results
-        sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path)
-        self.similarity_shapes.extend(zip(sorted_shapes, sorted_distances))
-        # present similar shapes
-        #self.get_similars()
-        self.display_similars()
+        if self.query_mesh:
+            #Use matcher to find closest results
+            sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path)
+            self.similarity_shapes.extend(zip(sorted_shapes, sorted_distances))
+            # present similar shapes
+            #self.get_similars()
+            self.display_similars()
 
-        self.sim_label.text = f"The {len(self.similarity_shapes)} most similar shapes"
+            self.sim_label.text = f"The {len(self.similarity_shapes)} most similar shapes"
+        else:
+            self.sim_label.text = f"Select a shape to compare!"
+
 
     # present the K best-matching shapes, plus their distances to the query, 
     # Alternative: set a distance threshold t and present all shapes in the 

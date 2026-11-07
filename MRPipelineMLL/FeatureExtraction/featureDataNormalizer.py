@@ -6,6 +6,7 @@ import numpy as np
 import Utility.config as config
 from matplotlib import pyplot as plt
 import Utility.utility as util
+import Utility.distanceFunctions as distFunc
 from enum import Enum
 from FeatureExtraction.featureTester import ElemFeature, DistFeature
 
@@ -45,22 +46,32 @@ class FeatureDataNormalizer():
             pc.increment()
 
         new_feature_db = np.transpose(np.asarray(normalized))
+        weight_factors = np.ones(new_feature_db.shape[1] - 1)
         # saves meta and new feature databases as numpy arrays in a seperate file
-        util.save_numpy_file(new_path, metadata=meta_db, features=new_feature_db, avgs=avgs, stds=stds)
+        util.save_numpy_file(new_path, metadata=meta_db, features=new_feature_db, avgs=avgs, stds=stds, weight_factors=weight_factors)
         config.lg.log(f"Done standardizating")
 
     def normalize_all_histograms(self, old_path="Data\\DataAnalysis\\distributionDatabases.npz", new_path="Data\\DataAnalysis\\distributionDatabasesNorm.npz"):
         dstr_databases = util.load_numpy_file(old_path)
 
-        a3 = self.normalize_distributions(dstr_databases['A3.npy'])
-        d1 = self.normalize_distributions(dstr_databases['D1.npy'])
-        d2 = self.normalize_distributions(dstr_databases['D2.npy'])
-        d3 = self.normalize_distributions(dstr_databases['D3.npy'])
-        d4 = self.normalize_distributions(dstr_databases['D4.npy'])
+        pc = util.ProgressCounter(5, 1, "histograms normalized")
 
-                # save all distributions in one file
+        a3 = self.normalize_distributions(dstr_databases['A3.npy'])
+        pc.increment()
+        d1 = self.normalize_distributions(dstr_databases['D1.npy'])
+        pc.increment()
+        d2 = self.normalize_distributions(dstr_databases['D2.npy'])
+        pc.increment()
+        d3 = self.normalize_distributions(dstr_databases['D3.npy'])
+        pc.increment()
+        d4 = self.normalize_distributions(dstr_databases['D4.npy'])
+        pc.increment()
+
+        weight_factors = [self.calculate_histogram_weight(x) for x in [a3,d1,d2,d3,d4]]
+
+        # save all distributions in one file
         util.save_numpy_file(new_path, 
-                             A3=a3, D1=d1, D2=d2, D3=d3, D4=d4)
+                             A3=a3, D1=d1, D2=d2, D3=d3, D4=d4, weight_factors=weight_factors)
         config.lg.log(f"Done normalizing")
 
     # not most optimized with indices being apart of the db, might be changed later
@@ -74,6 +85,26 @@ class FeatureDataNormalizer():
             norm_db.append(norm)
 
         return np.asarray(norm_db)
+
+    # Only pass one feature table, so for example all A3 features
+    def calculate_histogram_weight(self, histo_database):
+        # calculate all distances
+        distances = []
+
+        pc = util.ProgressCounter(histo_database.shape[0]*histo_database.shape[0], 2500000, "of combinations checked")
+        # In theory this should be half table, but cannot gaurantee edm(a,b) = edm(b,a) so test all (thus slower)
+        for i in range(histo_database.shape[0]):
+            for j in range(histo_database.shape[0]):
+                if i == j:
+                    continue
+
+                dist = distFunc.get_earth_movers_distance(histo_database[i,1:], histo_database[j,1:])
+                distances.append(dist)
+                pc.increment
+
+        #calculate variance and weight
+        std = np.std(distances)
+        return 1/std
 
     # normalization resulting in features always going from 0-1
     # already established to not be the best idea bc of outliers, but should be tested for completion i guess

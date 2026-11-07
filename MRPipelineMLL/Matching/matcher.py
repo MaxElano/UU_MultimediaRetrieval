@@ -16,6 +16,7 @@ from Matching.nearestNeighbors import ANN_matcher
 class Matcher():    
     def __init__(self):
         self.meta_db, self.global_features, self.distribution_features = self.get_feature_tables("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
+        self.glob_weights, self.dist_weights = self.get_weights("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
         self.ann = ANN_matcher(self.global_features)
 
     # <--- Methods for application or inbetween --->
@@ -84,3 +85,13 @@ class Matcher():
         feature_db = feature_databases['features']
         dist_db = util.load_numpy_file(location_distributions)
         return meta_db, feature_db, dist_db
+
+    def get_weights(self, location_global_features, location_distributions):
+        print("Start getting weights")
+        glob_weights = util.load_numpy_file(location_global_features)["weight_factors"]
+        dist_weights = util.load_numpy_file(location_distributions)["weight_factors"]
+        total = np.sum(glob_weights) + np.sum(dist_weights)
+        print(glob_weights)
+        print(dist_weights)
+        print("Done getting weights")
+        return glob_weights/total, dist_weights/total
