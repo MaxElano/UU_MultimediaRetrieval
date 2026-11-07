@@ -91,10 +91,13 @@ class ImageGenerator():
                           location = "Data\\Screenshots\\LostFiles", # where to save the screenshot to
                           title = "screenshot", #title of the screenshot
                           camera_angle = CameraAngle.FRONT,
-                          show_face_normals = False
+                          show_face_normals = False,
+                          world_axis = False
                           ):
         mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
-        self.generate_from_mesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
+        config.rd.add_mesh(mesh, "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj")
+        #self.generate_from_mesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
+        self.generate_screenshot(camera_angle, location, title, world_axis=world_axis)
 
     # If no database with icons of all shapes exists yet, call this shi
     # it will create one!
