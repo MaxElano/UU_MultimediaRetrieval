@@ -21,11 +21,38 @@ class Matcher():
 
     # <--- Methods for application or inbetween --->
     def get_meta_sorted_by_distance(self, path_to_mesh):
-        sorted_indices, sorted_distances = self.get_indices_sorted_by_distance(path_to_mesh)
+        sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh)
         return self.meta_db[sorted_indices], sorted_distances
-    
 
-    def get_indices_sorted_by_distance(self, path_to_mesh):
+    def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh):
+        nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
+        
+        distances = np.zeros(self.meta_db.shape[0])
+        for idx, name, _ in self.meta_db:
+            if np.all(self.global_features[:,0] != float(idx)):
+                config.lg.log(f"index {idx} missing in global feature database")
+                continue
+            if np.all(self.distribution_features['A3'][:,0] != float(idx)):
+                config.lg.log(f"index {idx} missing in distribution feature database")
+                continue
+
+            current_global_features = self.global_features[self.global_features[:,0] == float(idx)]
+            dist = distFunc.get_euclidean_distance(current_global_features[0,1:], nm_global_features[1:], self.glob_weights) 
+
+            distances[int(idx)] += dist
+
+            for feature in DistFeature:
+                column, name = feature.value
+                dist_table = self.distribution_features[name]
+                current_dist_features = dist_table[dist_table[:,0] == float(idx)]
+                dist2 = self.dist_weights[column - 1] * distFunc.get_earth_movers_distance(current_dist_features[0,1:], nm_distribution_features[column - 1][1:]) 
+                distances[int(idx)] += dist2
+
+        sorted_indices = np.argsort(distances)
+        return sorted_indices, distances[sorted_indices]
+
+
+    def get_indices_sorted_by_distance_knn(self, path_to_mesh):
         nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
 
         # keeping the distances knn returns for future comparisons, perhaps
