@@ -107,18 +107,18 @@ class ShapeNormalizerOpen3D():
     def run_one_mesh(self, mesh, object_entry, path_to_new_database):
         location = f"Data\\Screenshots\\AllMeshes\\{object_entry[1]}\\{object_entry[2].split(".")[0]}"
         #mesh = self.general_cleanup(mesh)
-        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up", show_face_normals=False) 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up") 
         
         self.orient_triangles(mesh, object_entry)
-        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces", True) 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces") 
         
         mesh = self.translate_to_barycenter_mesh(mesh)
-        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated") 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated", world_axis=True) 
         
         mesh_values = NormalizerMeshValues(mesh)
         eigen_vectors, _ = self.compute_principal_axes_simpler(mesh_values)
         self.align_to_world_frame(mesh_values, eigen_vectors)
-        self.ig.generate_from_arrays(mesh_values.vertices, mesh_values.triangles, location, "06_aligned_world_axis") 
+        self.ig.generate_from_arrays(mesh_values.vertices, mesh_values.triangles, location, "06_aligned_world_axis", world_axis=True) 
         
         self.flip_test(mesh_values)
         self.ig.generate_from_arrays(mesh_values.vertices, mesh_values.triangles, location, "07_flipped")
