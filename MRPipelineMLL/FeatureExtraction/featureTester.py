@@ -220,5 +220,5 @@ class FeatureTester():
             plt.close()
 
 
-ft = FeatureTester()
-ft.test_feature_extraction()
+# ft = FeatureTester()
+# ft.test_feature_extraction()

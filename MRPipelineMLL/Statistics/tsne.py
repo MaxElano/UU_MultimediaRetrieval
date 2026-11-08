@@ -7,7 +7,7 @@ import Utility.utility as util
 from FeatureExtraction.featureTester import DistFeature 
 
 class CustomTSNE():
-    def __init__(self, global_features_path, distribution_features_path, tsne_perplexity = 3, tsne_no_components = 2):
+    def __init__(self, global_features_path, distribution_features_path, tsne_perplexity = 200, tsne_no_components = 2):
         self.global_features_path = global_features_path
         self.distribution_features_path = distribution_features_path
         self.tsne_perplexity = tsne_perplexity
@@ -35,7 +35,8 @@ class CustomTSNE():
         features_total, labels, paths = self.get_features(self.global_features_path, self.distribution_features_path)
 
         # Embed feature vectors in lower-dimensional space using T-distributed Stochastic Neighbor Embedding (t-SNE)
-        features_embedded = TSNE(n_components=self.tsne_no_components, perplexity=self.tsne_perplexity).fit_transform(features_total)
+        #features_embedded = TSNE(n_components=self.tsne_no_components, perplexity=self.tsne_perplexity).fit_transform(features_total)
+        features_embedded = TSNE(n_components=self.tsne_no_components, perplexity=self.tsne_perplexity, max_iter=10000, init="random").fit_transform(features_total)
 
         # --- Visualize results --- #
         # Create colors map

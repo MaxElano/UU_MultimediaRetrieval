@@ -21,7 +21,7 @@ new_path = "Data\\NormalizedShapeDatabase"
 
 pn = PreNormalizer()
 pn.process_all_meshes(og_path, middle_path)
-
+    
 sn = ShapeNormalizerOpen3D()
 sn.normalize_all_meshes(middle_path, new_path)
 
