@@ -31,14 +31,11 @@ class FeatureExtractor():
         start = time.time()
         all_files = util.get_all_files(directory)
         pc = util.ProgressCounter(len(all_files), 250, "objects extracted")
-
         for file in all_files:
             _, shape_class, file_name = file
-            mesh = config.ml.load_mesh(util.get_path(file))
-
+            mesh = config.ml.load_mesh(util.get_path(file), open3d=True)
             metadata_list.append(np.array([index, file_name, shape_class]))
             feature_list.append(self.extract_global_features(mesh, index))
-
             a3, d1, d2, d3, d4 = self.extract_distribution_features(mesh, index)
             a3_list.append(a3)
             d1_list.append(d1)
@@ -84,9 +81,9 @@ class FeatureExtractor():
         vertices = np.asarray(mesh.vertices)
         A3 = np.append(index, self.A3(vertices, samples, bins))
         D1 = np.append(index, self.D1(vertices, samples, bins))
-        D2 = np.append(index, self.D2(vertices, samples, bins))   
+        D2 = np.append(index, self.D2(vertices, samples, bins))
         D3 = np.append(index, self.D3(vertices, samples, bins))
-        D4 = np.append(index, self.D4(vertices, samples, bins))       
+        D4 = np.append(index, self.D4(vertices, samples, bins))   
         
         return A3, D1, D2, D3, D4
 

@@ -4,8 +4,6 @@ sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src
 
 import numpy as np
 import open3d as o3d # for generating sphere and rectangle
-import Utility.config as config
-from renderer import RenderMode # for testing purposes!
 from matplotlib import pyplot as plt
 import Utility.utility as util
 from enum import Enum
@@ -220,5 +218,5 @@ class FeatureTester():
             plt.close()
 
 
-ft = FeatureTester()
-ft.test_feature_extraction()
+# ft = FeatureTester()
+# ft.test_feature_extraction()
