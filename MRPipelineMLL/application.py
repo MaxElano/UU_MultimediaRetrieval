@@ -197,7 +197,7 @@ class MainApplication:
 
         if self.query_mesh:
             #Use matcher to find closest results
-            sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path)
+            sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path, use_ann=True)
             self.similarity_shapes.extend(zip(sorted_shapes, sorted_distances))
             # present similar shapes
             #self.get_similars()
@@ -207,13 +207,6 @@ class MainApplication:
         else:
             self.sim_label.text = f"Select a shape to compare!"
 
-
-    # present the K best-matching shapes, plus their distances to the query, 
-    # Alternative: set a distance threshold t and present all shapes in the 
-    # database having a distance to the query lower than t. 
-    def get_similars(self, t = None, K = None):
-        #TODO Move this to Matcher
-        pass
 
     def display_similars(self):
         for combination in self.similarity_shapes:

@@ -4,11 +4,18 @@ sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src
 
 import numpy as np
 import Utility.config as config
+from enum import Enum
 
 '''
 File with functions that are used very often, 
 preferably use these above implementing them every time
 '''
+class CustomDistFeature(Enum): #Circular dependancy so had to extract these, I know bad code hibijibisch but lack of time to create pretty solution (outisde class)
+    A3 = (1, "A3")
+    D1 = (2, "D1")
+    D2 = (3, "D2")
+    D3 = (4, "D3")
+    D4 = (5, "D4")
 
 def get_all_files(database_path):
     # Returns list of all objects with (Path to database, class name, file name)
@@ -49,7 +56,25 @@ def save_numpy_file(total_path, **kwargs):
 # file["example_array_name"]
 def load_numpy_file(total_path):
     return np.load(total_path)
-        
+
+# Takes default global features table
+# Distribution features have to be all, recentely read from numpy
+def combine_feature_vectors(global_features, distribution_features, use_dist_names = True):
+    total_features = []
+
+    if use_dist_names:
+        total_features = global_features[:,1:]
+        for feature in CustomDistFeature:
+            _, name = feature.value
+            current_dist = distribution_features[name]
+            total_features = np.concatenate((total_features, current_dist[:,1:]), axis=1)
+    else:
+        total_features = global_features[1:]
+        for feature_database in distribution_features:
+            total_features = np.concatenate((total_features, feature_database[1:]), axis=0)
+
+    return total_features
+
 class ProgressCounter():
     def __init__(self, total, update_every, custom_text = ''):
         self.total = total

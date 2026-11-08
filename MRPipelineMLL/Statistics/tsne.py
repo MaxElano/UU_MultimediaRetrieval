@@ -18,12 +18,7 @@ class CustomTSNE():
         meta_db = feature_databases['metadata']
         feature_db = feature_databases['features']
         dist_db = util.load_numpy_file(distribution_features_path)
-        total_features = feature_db[:,1:]
-
-        for feature in DistFeature:
-            _, name = feature.value
-            current_dist = dist_db[name]
-            total_features = np.concatenate((total_features, current_dist[:,1:]), axis=1)
+        total_features = util.combine_feature_vectors(feature_db, dist_db)
 
         classes = meta_db[:,2]
         paths = [f"{meta_db[x,2]}/{meta_db[x,1]}" for x in range(meta_db.shape[0])]
