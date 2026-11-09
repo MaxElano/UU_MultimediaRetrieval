@@ -1,9 +1,9 @@
 import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
+
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, roc_auc_score, precision_score, recall_score, f1_score
-import sklearn
+from sklearn.metrics import auc
 from Matching.matcher import Matcher
 import Utility.utility as util
 import csv
@@ -25,9 +25,12 @@ class MetricsComputer():
 
     # If no allquery database exists, run that shi, for both ANN and KNN
     # choice to force run allquery db
-    def compute_results(self):
-        self.run_all_queries(ANN = False, start=770)
-        print("slay and yas")
+    # NOTE: DO NOT RUN THIS IT TAKES AGES
+    def compute_results(self, force_rerun = False):
+        self.force_rerun = force_rerun
+        self.run_all_queries(ANN = False)
+        self.run_all_queries(ANN = True)
+        print("All done!")
             #self.run_all_queries(ANN=False, start=i+20, end= i+21)
 
     # Create a csv file with shape, and then all returns (in which category they are)
@@ -71,7 +74,6 @@ class MetricsComputer():
                     del result
                     gc.collect()
 
-
     # change queen
     def get_query_results(self, ANN = True):
         results=[]
@@ -85,19 +87,20 @@ class MetricsComputer():
             for row in reader:
                 shape = row[0]
                 category = self.category_lookup[shape]
-                results.append((shape, category, row[1:]))
+                # skip the first one everytime because that should just be himself
+                results.append((shape, category, row[2:]))
         return results
 
     # Calculates the TP, TN, FP, FN
     def calculate_truths(self, query_info, K):
         TP = FP = FN = TN = 0
-        for mesh, true_class, results in query_info:
+        for _, true_class, results in query_info:
             retrieved = results[:K]
 
             relevant_total = sum(
                 1 for shape in self.shapes
                 if str(shape[1]) == true_class
-            )
+            ) - 1
 
             current_TP = sum(
                 1 for result in retrieved
@@ -123,11 +126,13 @@ class MetricsComputer():
     def compute_metrics(self):
         ANN_query_info = self.get_query_results(ANN=True)
         KNN_query_info = self.get_query_results(ANN=False)
+        
         # full ROC
         ANN_sens, ANN_spec = self.compute_ROC(ANN_query_info)
         KNN_sens, KNN_spec = self.compute_ROC(KNN_query_info)
 
         self.show_ROC(ANN_sens, ANN_spec, KNN_sens, KNN_spec,label="Full dataset")
+
         # ROC per category
         categories = sorted(set(shape[1] for shape in self.shapes))
         for category in categories:
@@ -138,21 +143,18 @@ class MetricsComputer():
             KNN_sens, KNN_spec = self.compute_ROC(KNN_category)
 
             self.show_ROC(ANN_sens, ANN_spec, KNN_sens, KNN_spec, label=str(category))
-        # ROC for a random shape fuck it we ball
 
     def compute_ROC(self, query_info):
         sens_vals = []
         spec_vals = []
-        K_values = range(0, len(self.shapes), 10)
+        K_values = list(range(0, len(self.shapes) - 1, 10))
+        K_values.append(len(self.shapes))
         for K in K_values:
             sensitivity, specificity = self.calculate_truths(query_info, K)
             sens_vals.append(sensitivity)
             spec_vals.append(specificity)
 
         return sens_vals, spec_vals
-
-    def plot_scalar_metric():
-        pass
 
     def show_ROC(self, ANN_sens, ANN_spec, KNN_sens, KNN_spec, label="All Queries"):
         sorted_indices = np.argsort(ANN_sens)
@@ -190,4 +192,4 @@ class MetricsComputer():
 
 
 #mcomp = MetricsComputer()
-#mcomp.compute_results()
+#mcomp.compute_metrics()

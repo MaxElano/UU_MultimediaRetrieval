@@ -24,7 +24,8 @@ class Matcher():
             sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh, k=k, e=e, mesh_exists = mesh_exists)
         else:
             sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh, mesh_exists = mesh_exists)
-
+            sorted_indices = sorted_indices[:k]
+            sorted_distances = sorted_distances[:k]
         return self.meta_db[sorted_indices], sorted_distances
 
     def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh, mesh_exists = False):
@@ -34,7 +35,8 @@ class Matcher():
             nm_distribution_features = np.asarray(nm_distribution_features, dtype=np.float64)
         else:
             nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
-
+            nm_global_features = np.asarray(nm_global_features, dtype=np.float64)
+            nm_distribution_features = np.asarray(nm_distribution_features, dtype=np.float64)
         distances = np.zeros(self.meta_db.shape[0])
         for idx, name, _ in self.meta_db:
             if np.all(self.global_features[:,0] != float(idx)):
