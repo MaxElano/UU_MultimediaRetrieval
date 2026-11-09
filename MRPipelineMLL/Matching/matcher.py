@@ -1,7 +1,6 @@
 import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
-import gc
 from Normalizer.normalizer import PreNormalizer, ShapeNormalizerOpen3D
 from FeatureExtraction.featureExtractor import FeatureExtractor
 import Utility.config as config
@@ -31,6 +30,8 @@ class Matcher():
     def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh, mesh_exists = False):
         if mesh_exists:
             nm_global_features, nm_distribution_features = self.retrieve_input_features(path_to_mesh)
+            nm_global_features = np.asarray(nm_global_features, dtype=np.float64)
+            nm_distribution_features = np.asarray(nm_distribution_features, dtype=np.float64)
         else:
             nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
 
@@ -114,15 +115,6 @@ class Matcher():
         fn = FeatureDataNormalizer()
         new_mesh_global_features = fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
         new_mesh_distribution_features = fn.normalize_distributions(new_mesh_distribution_features)
-
-        del meshset
-        del pn
-        del mesh
-        del sn
-        del new_mesh
-        del fe
-        del fn
-        gc.collect()
 
         return new_mesh_global_features, new_mesh_distribution_features
 

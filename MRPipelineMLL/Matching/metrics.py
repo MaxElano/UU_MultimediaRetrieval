@@ -26,13 +26,14 @@ class MetricsComputer():
     # If no allquery database exists, run that shi, for both ANN and KNN
     # choice to force run allquery db
     def compute_results(self):
-        self.run_all_queries(ANN=True, start=280)
+        self.run_all_queries()
+        print("slay and yas")
             #self.run_all_queries(ANN=False, start=i+20, end= i+21)
 
     # Create a csv file with shape, and then all returns (in which category they are)
     # exclude the shape itself from returns?
     # Choice between ANN and KNN
-    def run_all_queries(self, ANN = True, start = 0, end = None):
+    def run_all_queries(self, ANN = False, start = 0, end = None):
         shape_amt = len(self.shapes)
         if end is None:
             end = shape_amt
@@ -41,7 +42,6 @@ class MetricsComputer():
             file = "Data\\DataAnalysis\\ANNruns.csv"
         else:
             file = "Data\\DataAnalysis\\KNNruns.csv"
-        results = []
 
         # sorry im lazy
         # basically if you rerun, just get the whole bunch
@@ -49,7 +49,7 @@ class MetricsComputer():
             with open(file, "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
                 for shape in self.shapes[start:end]:
-                    sorted_shapes, _ = self.matcher.get_meta_sorted_by_distance(util.get_path(shape), use_ann=ANN, k=shape_amt, mesh_exists = False)
+                    sorted_shapes, _ = self.matcher.get_meta_sorted_by_distance(util.get_path(shape), use_ann=ANN, k=shape_amt, mesh_exists = True)
                     result = [str(shape[2])] + [str(s[2]) for s in sorted_shapes]
                     writer.writerow(result)
 
@@ -62,7 +62,7 @@ class MetricsComputer():
             with open(file, "a", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
                 for shape in self.shapes[start:end]:
-                    sorted_shapes, _ = self.matcher.get_meta_sorted_by_distance(util.get_path(shape), use_ann=ANN, k=shape_amt, mesh_exists = False)
+                    sorted_shapes, _ = self.matcher.get_meta_sorted_by_distance(util.get_path(shape), use_ann=ANN, k=shape_amt, mesh_exists = True)
                     result = [str(shape[2])] + [str(s[2]) for s in sorted_shapes]
                     writer.writerow(result)
 
@@ -122,8 +122,14 @@ class MetricsComputer():
 
     def compute_metrics(self):
         query_info = self.get_query_results(ANN=True)
+
+        # full ROC
         fpr, tpr = self.compute_ROC(query_info)
         self.show_ROC(fpr, tpr, "ANN")
+
+        # ROC per category
+
+        # ROC for a random shape fuck it we ball
 
     def compute_ROC(self, query_info):
         fpr_values = []
@@ -155,5 +161,5 @@ class MetricsComputer():
         plt.show()
 
 
-#mcomp = MetricsComputer()
-#mcomp.compute_metrics()
+mcomp = MetricsComputer()
+mcomp.compute_results()
