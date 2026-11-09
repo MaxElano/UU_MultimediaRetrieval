@@ -26,7 +26,7 @@ class MetricsComputer():
     # If no allquery database exists, run that shi, for both ANN and KNN
     # choice to force run allquery db
     def compute_results(self):
-        self.run_all_queries()
+        self.run_all_queries(ANN = False, start=770)
         print("slay and yas")
             #self.run_all_queries(ANN=False, start=i+20, end= i+21)
 
@@ -115,51 +115,79 @@ class MetricsComputer():
             FN += current_FN
             TN += current_TN
 
-        TPR = TP / (TP + FN) if TP + FN else 0
-        FPR = FP / (FP + TN) if FP + TN else 0
+        sensitivity = TP / (TP + FN) if TP + FN else 0
+        specificity = TN / (FP + TN) if FP + TN else 0
 
-        return 1 - FPR, TPR
+        return sensitivity, specificity
 
     def compute_metrics(self):
-        query_info = self.get_query_results(ANN=True)
-
+        ANN_query_info = self.get_query_results(ANN=True)
+        KNN_query_info = self.get_query_results(ANN=False)
         # full ROC
-        fpr, tpr = self.compute_ROC(query_info)
-        self.show_ROC(fpr, tpr, "ANN")
+        ANN_sens, ANN_spec = self.compute_ROC(ANN_query_info)
+        KNN_sens, KNN_spec = self.compute_ROC(KNN_query_info)
 
+        self.show_ROC(ANN_sens, ANN_spec, KNN_sens, KNN_spec,label="Full dataset")
         # ROC per category
+        categories = sorted(set(shape[1] for shape in self.shapes))
+        for category in categories:
+            ANN_category = [item for item in ANN_query_info if item[1] == category]
+            KNN_category = [item for item in KNN_query_info if item[1] == category]
 
+            ANN_sens, ANN_spec = self.compute_ROC(ANN_category)
+            KNN_sens, KNN_spec = self.compute_ROC(KNN_category)
+
+            self.show_ROC(ANN_sens, ANN_spec, KNN_sens, KNN_spec, label=str(category))
         # ROC for a random shape fuck it we ball
 
     def compute_ROC(self, query_info):
-        fpr_values = []
-        tpr_values = []
+        sens_vals = []
+        spec_vals = []
         K_values = range(0, len(self.shapes), 10)
         for K in K_values:
-            TPR, FPR = self.calculate_truths(query_info, K)
-            tpr_values.append(TPR)
-            fpr_values.append(FPR)
+            sensitivity, specificity = self.calculate_truths(query_info, K)
+            sens_vals.append(sensitivity)
+            spec_vals.append(specificity)
 
-        return fpr_values, tpr_values
+        return sens_vals, spec_vals
 
     def plot_scalar_metric():
         pass
 
-    def show_ROC(self, fpr, tpr, label="slay"):
-        sorted_indices = np.argsort(fpr)
+    def show_ROC(self, ANN_sens, ANN_spec, KNN_sens, KNN_spec, label="All Queries"):
+        sorted_indices = np.argsort(ANN_sens)
+        ANN_sens = np.array(ANN_sens)[sorted_indices]
+        ANN_spec = np.array(ANN_spec)[sorted_indices]
 
-        fpr = np.array(fpr)[sorted_indices]
-        tpr = np.array(tpr)[sorted_indices]
+        sorted_indices = np.argsort(KNN_sens)
+        KNN_sens = np.array(KNN_sens)[sorted_indices]
+        KNN_spec = np.array(KNN_spec)[sorted_indices]
 
-        score = auc(fpr, tpr)
+        ANN_score = auc(ANN_sens, ANN_spec)
+        KNN_score = auc(KNN_sens, KNN_spec)
 
-        plt.plot(fpr, tpr, marker="o", label=f"{label} (AUC={score:.3f})")
-        plt.xlabel("False Postive Rate")
-        plt.ylabel("True Positive Rate")
+        plt.figure(figsize=(8,6))
+
+        plt.plot([0, 1], [1, 0], linestyle="--", color="gray", label="Random classifier", linewidth=1)
+        plt.plot(ANN_sens, ANN_spec, label=f"ANN (AUC={ANN_score:.3f})", linewidth=2)
+        plt.plot(KNN_sens, KNN_spec, label =f"KNN (AUC = {KNN_score:.3f})", linewidth=2)
+        plt.xlabel("Sensitivity")
+        plt.ylabel("Specificity")
+
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+
+        plt.title(f"ROC Curves - {label}")
         plt.legend()
-        plt.grid()
-        plt.show()
+        plt.grid(alpha=0.3)
+
+        util.create_folder("Data\\DataAnalysis\\ROCs")
+        filename = f"ROC_{label}.png"
+        filepath = os.path.join("Data\\DataAnalysis\\ROCs", filename)
+        plt.savefig(filepath, dpi=300)
+
+        print("Saved ", filename, " to filepath ", filepath)
 
 
-mcomp = MetricsComputer()
-mcomp.compute_results()
+#mcomp = MetricsComputer()
+#mcomp.compute_results()
