@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
-
+import gc
 from Normalizer.normalizer import PreNormalizer, ShapeNormalizerOpen3D
 from FeatureExtraction.featureExtractor import FeatureExtractor
 import Utility.config as config
@@ -20,17 +20,20 @@ class Matcher():
         self.ann = ANN_matcher(util.combine_feature_vectors(self.global_features, self.distribution_features))
 
     # <--- Methods for application or inbetween --->
-    def get_meta_sorted_by_distance(self, path_to_mesh, use_ann = False, k = 100, e = 0.001):
+    def get_meta_sorted_by_distance(self, path_to_mesh, use_ann = False, k = 100, e = 0.001, mesh_exists = False):
         if use_ann:
-            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh, k=k, e=e)
+            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh, k=k, e=e, mesh_exists = mesh_exists)
         else:
-            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh)
+            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh, mesh_exists = mesh_exists)
 
         return self.meta_db[sorted_indices], sorted_distances
 
-    def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh):
-        nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
-        
+    def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh, mesh_exists = False):
+        if mesh_exists:
+            nm_global_features, nm_distribution_features = self.retrieve_input_features(path_to_mesh)
+        else:
+            nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
+
         distances = np.zeros(self.meta_db.shape[0])
         for idx, name, _ in self.meta_db:
             if np.all(self.global_features[:,0] != float(idx)):
@@ -56,8 +59,11 @@ class Matcher():
         return sorted_indices, distances[sorted_indices]
 
 
-    def get_indices_sorted_by_distance_ann(self, path_to_mesh, k, e):
-        nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
+    def get_indices_sorted_by_distance_ann(self, path_to_mesh, k, e, mesh_exists = False):
+        if mesh_exists:
+            nm_global_features, nm_distribution_features = self.retrieve_input_features(path_to_mesh)
+        else:
+            nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
 
         # keeping the distances knn returns for future comparisons, perhaps
         knn_dist, pre_selected = self.ann.k_nearest_neighbors(util.combine_feature_vectors(nm_global_features, nm_distribution_features, use_dist_names = False), k=k, e=e) 
@@ -109,8 +115,33 @@ class Matcher():
         new_mesh_global_features = fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
         new_mesh_distribution_features = fn.normalize_distributions(new_mesh_distribution_features)
 
+        del meshset
+        del pn
+        del mesh
+        del sn
+        del new_mesh
+        del fe
+        del fn
+        gc.collect()
+
         return new_mesh_global_features, new_mesh_distribution_features
-    
+
+    # if a shape already exists in the database, and youre like sure about it, just look its info up
+    def retrieve_input_features(self, path_to_mesh):
+        mesh_name = os.path.splitext(os.path.basename(path_to_mesh))[0] + ".npz"
+        row = np.where(self.meta_db[:,1] == mesh_name)[0][0]
+        index = int(self.meta_db[row, 0])
+
+        mesh_global_features = self.global_features[self.global_features[:,0] == index][0]
+        mesh_distribution_features = []
+        for feature in DistFeature:
+                table = self.distribution_features[feature.name]
+                match = table[table[:, 0] == index]
+                dists = [-1] + match[0][1:].tolist()
+                mesh_distribution_features.append(dists)
+        #remove indices
+        return [-1] + mesh_global_features[1:].tolist(), mesh_distribution_features
+
     def get_feature_tables(self, location_global_features, location_distributions):
         feature_databases = util.load_numpy_file(location_global_features)
         meta_db = feature_databases['metadata']
