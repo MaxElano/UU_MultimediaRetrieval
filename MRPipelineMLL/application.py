@@ -120,6 +120,10 @@ class MainApplication:
         self.renderer = GUIRenderer(self.w)
         self.w.add_child(self.renderer.scene_widget)
 
+        self.render_mode_button = gui.Button("Render Mode")
+        self.render_mode_button.set_on_clicked(self._on_render_mode)
+        self.top_buttons.add_child(self.render_mode_button)
+
         self.w.set_on_layout(self.on_layout)
 
     def run(self):
@@ -149,6 +153,9 @@ class MainApplication:
 
     def _on_slider(self, value):
         self.k = value
+
+    def _on_render_mode(self):
+        self.renderer.next_render_mode()
 
     # should be able to 'import' a mesh
     # save this mesh to a set location in our structure

@@ -50,8 +50,10 @@ class PreNormalizer():
         # Mesh must have edge manifoldness
         prevcount = meshset.current_mesh().edge_number() 
         try:
-            meshset.meshing_close_holes(maxholesize=100, newfaceselected=False, refinehole=False) #Maybe change parameter values?
+            meshset.meshing_close_holes(maxholesize=10000, newfaceselected=False, refinehole=False) #Maybe change parameter values?
+            config.lg.log(f"A hole was filled!!")
         except:
+            config.lg.log(f"A hole was NOT filled!!")
             self.crash += 1
         aftercount = meshset.current_mesh().edge_number() 
         

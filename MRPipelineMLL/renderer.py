@@ -220,6 +220,9 @@ class GUIRenderer:
         self.window = window
         self.scene_widget = gui.SceneWidget()
         self.scene_widget.scene = rendering.Open3DScene(self.window.renderer)
+        self.current_mesh = None
+        self.current_wireframe = None
+        self.current_render_mode = RenderMode.NORMAL
 
         self.scene_widget.scene.set_background([*background_color, 1.0])
 
@@ -229,13 +232,26 @@ class GUIRenderer:
         self.display_mesh(mesh)
 
     def display_mesh(self, mesh):
+        config.lg.log(f"Display mesh with {self.current_render_mode}")
         self.clear()
-        mesh.compute_vertex_normals()
+        self.current_mesh = mesh
+        self.current_wireframe = o3d.geometry.LineSet.create_from_triangle_mesh(mesh)
+
+        self.current_mesh.compute_vertex_normals()
 
         material = rendering.MaterialRecord()
         material.shader = "defaultLit"
 
-        self.scene_widget.scene.add_geometry("query_mesh", mesh, material)
+        match self.current_render_mode:
+            case RenderMode.EMPTY:
+                pass
+            case RenderMode.NORMAL:
+                self.scene_widget.scene.add_geometry("query_mesh", self.current_mesh, material)
+            case RenderMode.WIREFRAME_ONLY:
+                self.scene_widget.scene.add_geometry("query_mesh_wireframe", self.current_wireframe, material)
+            case RenderMode.MIXED:
+                self.scene_widget.scene.add_geometry("query_mesh", self.current_mesh, material)
+                self.scene_widget.scene.add_geometry("query_mesh_wireframe", self.current_wireframe, material)
 
         bounds = self.scene_widget.scene.bounding_box
         self.scene_widget.setup_camera(60.0, bounds, bounds.get_center())
@@ -256,6 +272,7 @@ class GUIRenderer:
                 mesh,
                 material
             )
+
     def create_custom_world_axis(self):
         world_axis_meshes = []
         scale = 0.01
@@ -275,4 +292,6 @@ class GUIRenderer:
 
         return world_axis_meshes
 
-
+    def next_render_mode(self):
+        self.current_render_mode = self.current_render_mode.next
+        self.display_mesh(self.current_mesh)

@@ -55,8 +55,6 @@ def save_numpy_file(total_path, **kwargs):
 # Acces specific arrays using returned file
 # file["example_array_name"]
 def load_numpy_file(total_path):
-    config.lg.log(f"      \\_Numpy load with {total_path}")
-
     return np.load(total_path)
 
 # Takes default global features table

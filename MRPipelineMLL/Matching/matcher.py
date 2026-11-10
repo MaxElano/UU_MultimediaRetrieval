@@ -100,22 +100,18 @@ class Matcher():
         object_entry = [input_location, "New", file_name]
 
         #Normalize
-        config.lg.log("\\_Start pre normalize")
         meshset = config.ml.load_mesh(full_path, pyMeshLab=True)
         pn = PreNormalizer()
         pre_norm_save_loc = input_location + "\\PreNormalized"
         pn.run_one_mesh(meshset, object_entry, pre_norm_save_loc)
         file_name = file_name.split(".")[0] + '.npz'
 
-        config.lg.log("\\_Start normalize")
         mesh = config.ml.load_mesh(util.get_path([pre_norm_save_loc,"New", file_name]), open3d=True)
         sn = ShapeNormalizerOpen3D()
         norm_save_loc = input_location + "\\Normalized"
         sn.run_one_mesh(mesh, object_entry, norm_save_loc)
 
         #Get Features
-        config.lg.log(f"\\_Start feature extractor with {norm_save_loc}, {file_name}")
-
         fe = FeatureExtractor()
         new_mesh = config.ml.load_mesh(util.get_path([norm_save_loc,"New", file_name]), open3d=True)
         new_mesh_global_features = fe.extract_global_features(new_mesh, -1)
@@ -124,7 +120,6 @@ class Matcher():
         new_mesh_global_features = self.fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
         new_mesh_distribution_features = self.fn.normalize_distributions(new_mesh_distribution_features)
 
-        config.lg.log("\\_ Done collecting features")
         return new_mesh_global_features, new_mesh_distribution_features
 
     # if a shape already exists in the database, and youre like sure about it, just look its info up
@@ -151,11 +146,7 @@ class Matcher():
         return meta_db, feature_db, dist_db
 
     def get_weights(self, location_global_features, location_distributions):
-        print("Start getting weights")
         glob_weights = util.load_numpy_file(location_global_features)["weight_factors"]
         dist_weights = util.load_numpy_file(location_distributions)["weight_factors"]
         total = np.sum(glob_weights) + np.sum(dist_weights)
-        print(glob_weights)
-        print(dist_weights)
-        print("Done getting weights")
         return glob_weights/total, dist_weights/total
