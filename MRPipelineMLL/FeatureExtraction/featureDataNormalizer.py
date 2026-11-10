@@ -19,7 +19,8 @@ and divide result by standard deviation of that feature).
 
 class FeatureDataNormalizer():
     def __init__(self):
-        pass
+        self.global_features_path = "Data\\DataAnalysis\\featureDatabasesStandardized.npz"
+        self.global_features = util.load_numpy_file(self.global_features_path)
 
     def standardize_all(self, old_path="Data\\DataAnalysis\\featureDatabases.npz", new_path="Data\\DataAnalysis\\featureDatabasesStandardized.npz"):
         config.lg.log(f"Starting global feature standardization from location {old_path} to {new_path}")
@@ -127,9 +128,8 @@ class FeatureDataNormalizer():
     def standardize_one_shape(self, feature_values, global_features_path):
         normalized = []
         normalized.append(feature_values[0])
-        global_features = util.load_numpy_file(global_features_path)
-        avgs = global_features['avgs']
-        stds = global_features['stds']
+        avgs = self.global_features['avgs']
+        stds = self.global_features['stds']
         for feature in ElemFeature:
             feature_nr, _ = feature.value
             values = feature_values[feature_nr]

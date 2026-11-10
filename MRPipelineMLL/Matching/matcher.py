@@ -17,6 +17,7 @@ class Matcher():
         self.meta_db, self.global_features, self.distribution_features = self.get_feature_tables("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
         self.glob_weights, self.dist_weights = self.get_weights("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
         self.ann = ANN_matcher(util.combine_feature_vectors(self.global_features, self.distribution_features))
+        self.fn = FeatureDataNormalizer()
 
     # <--- Methods for application or inbetween --->
     def get_meta_sorted_by_distance(self, path_to_mesh, use_ann = False, k = 100, e = 0.001, mesh_exists = False):
@@ -114,9 +115,8 @@ class Matcher():
         new_mesh_global_features = fe.extract_global_features(new_mesh, -1)
         new_mesh_distribution_features = fe.extract_distribution_features(new_mesh, -1)
 
-        fn = FeatureDataNormalizer()
-        new_mesh_global_features = fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
-        new_mesh_distribution_features = fn.normalize_distributions(new_mesh_distribution_features)
+        new_mesh_global_features = self.fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
+        new_mesh_distribution_features = self.fn.normalize_distributions(new_mesh_distribution_features)
 
         return new_mesh_global_features, new_mesh_distribution_features
 
