@@ -135,6 +135,7 @@ class FeatureDataNormalizer():
             values = feature_values[feature_nr]
             normalized_value, _, _ = self.standardization(values, avgs[feature_nr], stds[feature_nr])
             normalized.append(normalized_value)
+        config.lg.log(f"    \\_Done all features")
 
         new_feature_db = np.transpose(np.asarray(normalized))
         return new_feature_db
