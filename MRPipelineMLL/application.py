@@ -12,7 +12,7 @@ from Matching.matcher import Matcher
 
 # note: first time you run it will create ALL display icons so it will take a while
 class MainApplication:
-    def __init__(self, db = "Data\\OriginalShapeDatabase", K = 20, t = 0.5): 
+    def __init__(self, db = "Data\\OriginalShapeDatabase"): 
         #config.initialize(skip_renderer=True)
         self.matcher = Matcher()
         self.app = gui.Application.instance
@@ -25,6 +25,12 @@ class MainApplication:
         #current query
         self.query_path = None
         self.query_mesh = None
+        # Meaning: query mesh is in the database already
+        # used so you dont have to rerun feature extraction etc. for the mesh
+        self.query_mesh_exists = False
+
+        self.k = 50
+        self.ANN = False
 
         # has every shape in the database and their corresponding similarity
         self.similarity_shapes = []
@@ -36,7 +42,7 @@ class MainApplication:
 
         # LEFT SIDE TOP: controls and the 3d display -------------------------------
 
-        # top buttons
+        # top buttons, slider, ann/knn choice
         self.top_buttons = gui.Horiz(5, gui.Margins(2,2,2,2))
         
         self.choose_button = gui.Button("Choose")
@@ -47,8 +53,34 @@ class MainApplication:
         self.import_button.set_on_clicked(self._on_import_mesh)
         self.top_buttons.add_child(self.import_button)
 
+        # slider + info    
+        self.sliding = gui.Vert(5, gui.Margins(2,2,2,2))
+
+        slider_label = gui.Label("Slide to select your K")
+        self.sliding.add_child(slider_label)
+
+        self.slider = gui.Slider(gui.Slider.INT)
+        self.slider.set_limits(0, len(self.db_shapes))
+        self.slider.int_value = 50
+
+        self.slider.set_on_value_changed(self._on_slider)
+        self.sliding.add_child(self.slider)
+
+        self.top_buttons.add_child(self.sliding)
+
+        matcher_toggle = gui.Vert(5, gui.Margins(2,2,2,2))
+        toggle_label = gui.Label("KNN / ANN")
+        matcher_toggle.add_child(toggle_label)
+        toggle_capture = gui.ToggleSwitch("")
+        toggle_capture.is_on = False
+        toggle_capture.set_on_clicked(self._on_toggle_capture)
+        matcher_toggle.add_child(toggle_capture)
+
+        self.top_buttons.add_child(matcher_toggle)
+
         self.top_container = gui.Vert()
         self.top_container.add_child(self.top_buttons)
+        
         self.w.add_child(self.top_container)
 
         # LEFT SIDE BOTTOM: status and comparison button ---------------------------
@@ -95,10 +127,10 @@ class MainApplication:
 
     def on_layout(self, layout):
         rect = self.w.content_rect
-        left_width = int(rect.width * 0.50)
+        left_width = int(rect.width * 0.6)
         right_width = rect.width - left_width
 
-        top_height = int(rect.height * 0.11)
+        top_height = int(rect.height * 0.15)
         bottom_height = int(rect.height*0.2)
 
         scene_height = rect.height - top_height - bottom_height
@@ -112,6 +144,12 @@ class MainApplication:
         self.sim_container.frame = gui.Rect(rect.x + left_width, rect.y, right_width, rect.y + top_height)
         self.results_scroll.frame = gui.Rect(rect.x + left_width, rect.y + top_height, right_width, scene_height + bottom_height)
 
+    def _on_toggle_capture(self, is_enabled):
+        self.ANN = is_enabled
+
+    def _on_slider(self, value):
+        self.k = value
+
     # should be able to 'import' a mesh
     # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
@@ -120,8 +158,13 @@ class MainApplication:
 
         dialog.add_filter(".obj", "3D meshes")
         dialog.set_on_cancel(self._on_cancel)
-        dialog.set_on_done(self._on_done)
+        dialog.set_on_done(self._on_import_done)
         self.w.show_dialog(dialog)
+
+    def _on_import_done(self, path):
+        self.query_mesh_exists = False
+        path = path.replace("/", "\\")
+        self._on_done(path)
 
     def _on_cancel(self):
         self.w.close_dialog()
@@ -139,7 +182,7 @@ class MainApplication:
     # save this mesh to a set location in our structure
     # It displays this mesh and sets it as query mesh + location
     def _on_choose_mesh(self):
-        dialog = gui.Dialog("Pick a mesh any mesh")
+        dialog = gui.Dialog("Pick a mesh")
 
         em = self.w.theme.font_size
         layout = gui.Vert(2*em, gui.Margins(em, em, em, em))
@@ -183,6 +226,7 @@ class MainApplication:
         category = self.class_widget.selected_text
         shape = self.mesh_widget.selected_value
         path = os.path.abspath(os.path.join(self.db, category, shape))
+        self.query_mesh_exists = True
         self._on_done(path)
     
     def _on_comparison(self):
@@ -190,23 +234,26 @@ class MainApplication:
         self.results = gui.Vert(8, gui.Margins(2,2,2,2))
         self.results_content.set_widget(self.results)
 
-        # #TODO: PLACEHOLDER DATA
+        # PLACEHOLDER DATA
         #for i in range(50):
         #    similarity = (1.0/(i+1))
         #    self.similarity_shapes.append([self.db_shapes[i], similarity])
 
         if self.query_mesh:
             #Use matcher to find closest results
-            sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path, use_ann=True)
+            sorted_shapes, sorted_distances = self.matcher.get_meta_sorted_by_distance(self.query_path, use_ann=self.ANN, mesh_exists = self.query_mesh_exists, k=self.k)
             self.similarity_shapes.extend(zip(sorted_shapes, sorted_distances))
             # present similar shapes
             #self.get_similars()
             self.display_similars()
-
-            self.sim_label.text = f"The {len(self.similarity_shapes)} most similar shapes"
+            func = ""
+            if self.ANN:
+                func = "ANN"
+            else:
+                func = "KNN"
+            self.sim_label.text = f"The {len(self.similarity_shapes)} most similar shapes using {func}"
         else:
             self.sim_label.text = f"Select a shape to compare!"
-
 
     def display_similars(self):
         for combination in self.similarity_shapes:

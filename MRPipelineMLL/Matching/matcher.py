@@ -1,7 +1,6 @@
 import sys
 import os
 sys.path.insert(0, os.getcwd() + "\\MRPipelineMLL") # location of src 
-
 from Normalizer.normalizer import PreNormalizer, ShapeNormalizerOpen3D
 from FeatureExtraction.featureExtractor import FeatureExtractor
 import Utility.config as config
@@ -18,19 +17,27 @@ class Matcher():
         self.meta_db, self.global_features, self.distribution_features = self.get_feature_tables("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
         self.glob_weights, self.dist_weights = self.get_weights("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
         self.ann = ANN_matcher(util.combine_feature_vectors(self.global_features, self.distribution_features))
+        self.fn = FeatureDataNormalizer()
 
     # <--- Methods for application or inbetween --->
-    def get_meta_sorted_by_distance(self, path_to_mesh, use_ann = False, k = 100, e = 0.001):
+    def get_meta_sorted_by_distance(self, path_to_mesh, use_ann = False, k = 100, e = 0.001, mesh_exists = False):
         if use_ann:
-            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh, k=k, e=e)
+            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh, k=k, e=e, mesh_exists = mesh_exists)
         else:
-            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh)
-
+            sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh, mesh_exists = mesh_exists)
+            sorted_indices = sorted_indices[:k]
+            sorted_distances = sorted_distances[:k]
         return self.meta_db[sorted_indices], sorted_distances
 
-    def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh):
-        nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
-        
+    def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh, mesh_exists = False):
+        if mesh_exists:
+            nm_global_features, nm_distribution_features = self.retrieve_input_features(path_to_mesh)
+            nm_global_features = np.asarray(nm_global_features, dtype=np.float64)
+            nm_distribution_features = np.asarray(nm_distribution_features, dtype=np.float64)
+        else:
+            nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
+            nm_global_features = np.asarray(nm_global_features, dtype=np.float64)
+            nm_distribution_features = np.asarray(nm_distribution_features, dtype=np.float64)
         distances = np.zeros(self.meta_db.shape[0])
         for idx, name, _ in self.meta_db:
             if np.all(self.global_features[:,0] != float(idx)):
@@ -56,8 +63,11 @@ class Matcher():
         return sorted_indices, distances[sorted_indices]
 
 
-    def get_indices_sorted_by_distance_ann(self, path_to_mesh, k, e):
-        nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
+    def get_indices_sorted_by_distance_ann(self, path_to_mesh, k, e, mesh_exists = False):
+        if mesh_exists:
+            nm_global_features, nm_distribution_features = self.retrieve_input_features(path_to_mesh)
+        else:
+            nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
 
         # keeping the distances knn returns for future comparisons, perhaps
         knn_dist, pre_selected = self.ann.k_nearest_neighbors(util.combine_feature_vectors(nm_global_features, nm_distribution_features, use_dist_names = False), k=k, e=e) 
@@ -111,17 +121,28 @@ class Matcher():
         new_mesh_global_features = fe.extract_global_features(new_mesh, -1)
         new_mesh_distribution_features = fe.extract_distribution_features(new_mesh, -1)
 
-        config.lg.log(f"\\_Start feature normalizer {new_mesh_global_features}")
-        fn = FeatureDataNormalizer()
-        config.lg.log(f"  \\_Feature normalizer created")
-        new_mesh_global_features = fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
-        config.lg.log(f"  \\_Standardized")
-        new_mesh_distribution_features = fn.normalize_distributions(new_mesh_distribution_features)
-        config.lg.log(f"  \\_Normalized")
+        new_mesh_global_features = self.fn.standardize_one_shape(new_mesh_global_features, "Data\\DataAnalysis\\featureDatabasesStandardized.npz")
+        new_mesh_distribution_features = self.fn.normalize_distributions(new_mesh_distribution_features)
 
         config.lg.log("\\_ Done collecting features")
         return new_mesh_global_features, new_mesh_distribution_features
-    
+
+    # if a shape already exists in the database, and youre like sure about it, just look its info up
+    def retrieve_input_features(self, path_to_mesh):
+        mesh_name = os.path.splitext(os.path.basename(path_to_mesh))[0] + ".npz"
+        row = np.where(self.meta_db[:,1] == mesh_name)[0][0]
+        index = int(self.meta_db[row, 0])
+
+        mesh_global_features = self.global_features[self.global_features[:,0] == index][0]
+        mesh_distribution_features = []
+        for feature in DistFeature:
+                table = self.distribution_features[feature.name]
+                match = table[table[:, 0] == index]
+                dists = [-1] + match[0][1:].tolist()
+                mesh_distribution_features.append(dists)
+        #remove indices
+        return [-1] + mesh_global_features[1:].tolist(), mesh_distribution_features
+
     def get_feature_tables(self, location_global_features, location_distributions):
         feature_databases = util.load_numpy_file(location_global_features)
         meta_db = feature_databases['metadata']
