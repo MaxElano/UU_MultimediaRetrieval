@@ -55,6 +55,8 @@ def save_numpy_file(total_path, **kwargs):
 # Acces specific arrays using returned file
 # file["example_array_name"]
 def load_numpy_file(total_path):
+    config.lg.log(f"      \\_Numpy load with {total_path}")
+
     return np.load(total_path)
 
 # Takes default global features table
@@ -70,10 +72,23 @@ def combine_feature_vectors(global_features, distribution_features, use_dist_nam
             total_features = np.concatenate((total_features, current_dist[:,1:]), axis=1)
     else:
         total_features = global_features[1:]
-        for feature_database in distribution_features:
+        for idx, feature_database in enumerate(distribution_features):
+            if idx == distribution_features.shape[0] - 1:
+                continue #SKIP THE WEIGHTS
+
             total_features = np.concatenate((total_features, feature_database[1:]), axis=0)
 
     return total_features
+
+# Taken from https://stackoverflow.com/questions/53699012/performant-cartesian-product-cross-join-with-pandas
+# Credits to @senderle
+def cartesian_product(*arrays):
+    la = len(arrays)
+    dtype = np.result_type(*arrays)
+    arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
+    for i, a in enumerate(np.ix_(*arrays)):
+        arr[...,i] = a
+    return arr.reshape(-1, la)  
 
 class ProgressCounter():
     def __init__(self, total, update_every, custom_text = ''):

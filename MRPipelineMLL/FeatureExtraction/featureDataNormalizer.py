@@ -127,14 +127,18 @@ class FeatureDataNormalizer():
     def standardize_one_shape(self, feature_values, global_features_path):
         normalized = []
         normalized.append(feature_values[0])
+        config.lg.log(f"    \\_Before numpy load")
         global_features = util.load_numpy_file(global_features_path)
+        config.lg.log(f"    \\_After numpy load")
         avgs = global_features['avgs']
         stds = global_features['stds']
+        config.lg.log(f"    \\_Got all databases")
         for feature in ElemFeature:
             feature_nr, _ = feature.value
             values = feature_values[feature_nr]
             normalized_value, _, _ = self.standardization(values, avgs[feature_nr], stds[feature_nr])
             normalized.append(normalized_value)
+        config.lg.log(f"    \\_Done all features")
 
         new_feature_db = np.transpose(np.asarray(normalized))
         return new_feature_db
