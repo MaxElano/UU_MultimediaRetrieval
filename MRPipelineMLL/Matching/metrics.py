@@ -91,9 +91,11 @@ class MetricsComputer():
                 results.append((shape, category, row[2:]))
         return results
 
-    # Calculates the TP, TN, FP, FN
+        # Calculates the TP, TN, FP, FN
     def calculate_truths(self, query_info, K):
-        TP = FP = FN = TN = 0
+        sensitivities = []
+        specificities = []
+
         for _, true_class, results in query_info:
             retrieved = results[:K]
 
@@ -113,15 +115,20 @@ class MetricsComputer():
             total_irrelevant = len(self.shapes) - 1 - relevant_total
             current_TN = total_irrelevant - current_FP
 
-            TP += current_TP
-            FP += current_FP
-            FN += current_FN
-            TN += current_TN
+            sensitivity = (
+                current_TP / (current_TP + current_FN)
+                if current_TP + current_FN else 0
+            )
 
-        sensitivity = TP / (TP + FN) if TP + FN else 0
-        specificity = TN / (FP + TN) if FP + TN else 0
+            specificity = (
+                current_TN / (current_TN + current_FP)
+                if current_TN + current_FP else 0
+            )
 
-        return sensitivity, specificity
+            sensitivities.append(sensitivity)
+            specificities.append(specificity)
+
+        return np.mean(sensitivities), np.mean(specificities)
 
     def compute_metrics(self):
         ANN_query_info = self.get_query_results(ANN=True)
