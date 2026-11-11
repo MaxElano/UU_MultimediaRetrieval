@@ -46,10 +46,6 @@ class ShowFeatureExtraction:
         self.choose_button.set_on_clicked(self._on_choose_mesh)
         self.top_buttons.add_child(self.choose_button)
 
-        self.import_button = gui.Button("Import")
-        self.import_button.set_on_clicked(self._on_import_mesh)
-        self.top_buttons.add_child(self.import_button)
-
         # Compare button 
         self.extract_button = gui.Button("Extract")
         self.extract_button.set_on_clicked(self._on_extract)
@@ -95,18 +91,6 @@ class ShowFeatureExtraction:
         self.renderer.scene_widget.frame = gui.Rect(rect.x, rect.y + top_height,left_width,scene_height)
 
         self.right_side.frame =  gui.Rect(rect.x + left_width, rect.y + top_height,right_width,scene_height)
-
-
-    # should be able to 'import' a mesh
-    # save this mesh to a set location in our structure
-    # It displays this mesh and sets it as query mesh + location
-    def _on_import_mesh(self):
-        dialog = gui.FileDialog(gui.FileDialog.OPEN, "Import a mesh", self.w.theme)
-
-        dialog.add_filter(".obj", "3D meshes")
-        dialog.set_on_cancel(self._on_cancel)
-        dialog.set_on_done(self._on_done)
-        self.w.show_dialog(dialog)
 
     def _on_cancel(self):
         self.w.close_dialog()
