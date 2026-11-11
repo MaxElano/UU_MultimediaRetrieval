@@ -30,7 +30,7 @@ class ShowFeatureExtraction:
         self.norm_path = None
         self.query_mesh = None
 
-        self.meta_db, self.global_features, self.distribution_features = self.get_feature_tables("Data\\DataAnalysis\\featureDatabasesStandardized.npz", "Data\\DataAnalysis\\distributionDatabasesNorm.npz")
+        self.meta_db, self.global_features, self.distribution_features = self.get_feature_tables("Data\\DataAnalysis\\featureDatabases.npz", "Data\\DataAnalysis\\distributionDatabases.npz")
 
         # setting the scene ----------------------------------------------------
         self.w = gui.Application.instance.create_window("Shape Comparison", 1280, 720)
@@ -220,5 +220,5 @@ class ShowFeatureExtraction:
 
         
 # run using:
-#ShowFeatureExtraction().run()
+ShowFeatureExtraction().run()
 
