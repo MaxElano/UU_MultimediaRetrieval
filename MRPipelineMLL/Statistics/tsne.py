@@ -33,7 +33,7 @@ class CustomTSNE():
         features_total, labels, paths = self.get_features(self.global_features_path, self.distribution_features_path)
 
         # Embed feature vectors in lower-dimensional space using T-distributed Stochastic Neighbor Embedding (t-SNE)
-        #features_embedded = TSNE(n_components=self.tsne_no_components, perplexity=self.tsne_perplexity).fit_transform(features_total)
+        # https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
         features_embedded = TSNE(n_components=n_components, 
                                  perplexity=perplexity, 
                                  max_iter=max_iter, 
@@ -121,6 +121,7 @@ class CustomTSNE():
 
             fig.canvas.mpl_connect("motion_notify_event", hover)
             plt.show()
+        plt.close()
 
 
     def create_test_array(self, **kwargs):
@@ -157,7 +158,7 @@ class CustomTSNE():
 
         for case in total_test_values:
             parameter_list = {k: v for k, v in zip(parameter_names, case)}
-            features_embedded, labels, paths = self.create_tsne(**parameter_list)
+            features_embedded, labels, paths = self.create_tsne(n_jobs=-1, method='exact',**parameter_list)
             lines = [f"{k}_{val}" for k,val in parameter_list.items()]
             name = "-".join(lines)
             self.plot(features_embedded, labels, paths, show=False, save=True, name_folder=test_case_folder_name, name_image=name, include=include, exclude=exclude)

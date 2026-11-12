@@ -112,7 +112,7 @@ class ShapeNormalizerOpen3D():
         self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "03_cleaned_up") 
         
         self.orient_triangles(mesh, object_entry)
-        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces") 
+        self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "04_oriented_faces") #show_face_normals=True 
         
         mesh = self.translate_to_barycenter_mesh(mesh)
         self.ig.generate_from_arrays(np.asarray(mesh.vertices), np.asarray(mesh.triangles), location, "05_translated", world_axis=True) 

@@ -17,16 +17,17 @@ o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error) # Disables enj
 
 og_path = "Data\\OriginalShapeDatabase"
 middle_path = "Data\\PreprocessedShapeDatabase"
-new_path = "Data\\NormalizedShapeDatabase"
+# new_path = "Data\\NormalizedShapeDatabase"
+new_path = "Data\\NormalizedShapeDatabaseTEMPORARY"
 
-pn = PreNormalizer()
-pn.process_all_meshes(og_path, middle_path)
+#pn = PreNormalizer()
+#pn.process_all_meshes(og_path, middle_path)
     
 sn = ShapeNormalizerOpen3D()
 sn.normalize_all_meshes(middle_path, new_path)
 
-ppc = NormalizeChecker()
-ppc.compute_all_checks(show_update_every=250, processed_data_path=new_path)    
+#ppc = NormalizeChecker()
+#ppc.compute_all_checks(show_update_every=250, processed_data_path=new_path)    
 
 end = time.time()
 duration = end-start

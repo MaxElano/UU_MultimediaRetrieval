@@ -17,7 +17,9 @@ class ANN_matcher():
         
     #returns the approximate k nearest neighbors from the kd tree
     def k_nearest_neighbors(self, point, k, e):
+        config.lg.log(f"Start k nearest neighbours")
         knn_distances, knn_indices = self.kdtree.query(point, k=k, eps=e)
+        config.lg.log(f"Done k nearest neighbours")
         return knn_distances, knn_indices
 
     # returns all neighbors within the distance r from a point

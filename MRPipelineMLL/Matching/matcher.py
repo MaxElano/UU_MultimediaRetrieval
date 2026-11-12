@@ -21,12 +21,16 @@ class Matcher():
 
     # <--- Methods for application or inbetween --->
     def get_meta_sorted_by_distance(self, path_to_mesh, use_ann = False, k = 100, e = 0.001, mesh_exists = False):
+        config.lg.log(f"{use_ann}")
         if use_ann:
+            config.lg.log(f"Using ann")
             sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_ann(path_to_mesh, k=k, e=e, mesh_exists = mesh_exists)
         else:
+            config.lg.log(f"Not using ann")
             sorted_indices, sorted_distances = self.get_indices_sorted_by_distance_custom_pipeline(path_to_mesh, mesh_exists = mesh_exists)
             sorted_indices = sorted_indices[:k]
             sorted_distances = sorted_distances[:k]
+        config.lg.log(f"Done getting distances")
         return self.meta_db[sorted_indices], sorted_distances
 
     def get_indices_sorted_by_distance_custom_pipeline(self, path_to_mesh, mesh_exists = False):
@@ -65,13 +69,20 @@ class Matcher():
 
     def get_indices_sorted_by_distance_ann(self, path_to_mesh, k, e, mesh_exists = False):
         if mesh_exists:
+            config.lg.log(f"Mesh exsists")
             nm_global_features, nm_distribution_features = self.retrieve_input_features(path_to_mesh)
+            config.lg.log(f"{nm_global_features}")
+            config.lg.log(f"{nm_distribution_features}")
         else:
+            config.lg.log(f"Mesh does not exsist")
             nm_global_features, nm_distribution_features = self.get_input_features(path_to_mesh)
 
-        # keeping the distances knn returns for future comparisons, perhaps
-        knn_dist, pre_selected = self.ann.k_nearest_neighbors(util.combine_feature_vectors(nm_global_features, nm_distribution_features, use_dist_names = False), k=k, e=e) 
+        config.lg.log(f"Got input features")
 
+        # keeping the distances knn returns for future comparisons, perhaps
+        knn_dist, pre_selected = self.ann.k_nearest_neighbors(util.combine_feature_vectors(nm_global_features, nm_distribution_features, use_dist_names = False, skip_weights_distr=False), k=k, e=e) 
+
+        config.lg.log(f"Done getting ann")
         #TODO convert this
 
         # distances = np.zeros(len(pre_selected))
@@ -136,7 +147,7 @@ class Matcher():
                 dists = [-1] + match[0][1:].tolist()
                 mesh_distribution_features.append(dists)
         #remove indices
-        return [-1] + mesh_global_features[1:].tolist(), mesh_distribution_features
+        return np.asarray([-1] + mesh_global_features[1:].tolist()), np.asarray(mesh_distribution_features)
 
     def get_feature_tables(self, location_global_features, location_distributions):
         feature_databases = util.load_numpy_file(location_global_features)

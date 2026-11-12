@@ -94,9 +94,14 @@ class ImageGenerator():
                           show_face_normals = False,
                           world_axis = False
                           ):
-        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
-        config.rd.add_mesh(mesh, "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj")
-        #self.generate_from_mesh([mesh], location, title, camera_angle, show_face_normals=show_face_normals)
+        if show_face_normals:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(vertices)
+            pcd.estimate_normals()
+            o3d.visualization.draw_geometries([pcd], point_show_normal=True)
+        else:
+            mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices), o3d.utility.Vector3iVector(faces))
+            config.rd.add_mesh(mesh, "Data\\NormalizedShapeDatabase\\Starship\\m1355.obj")
         self.generate_screenshot(camera_angle, location, title, world_axis=world_axis)
 
     # If no database with icons of all shapes exists yet, call this shi

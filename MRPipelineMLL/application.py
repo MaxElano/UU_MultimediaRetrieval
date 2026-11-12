@@ -14,6 +14,7 @@ from Matching.matcher import Matcher
 class MainApplication:
     def __init__(self, db = "Data\\OriginalShapeDatabase"): 
         #config.initialize(skip_renderer=True)
+        self.base_directory = os.getcwd()
         self.matcher = Matcher()
         self.app = gui.Application.instance
         self.app.initialize()
@@ -152,7 +153,7 @@ class MainApplication:
         self.ANN = is_enabled
 
     def _on_slider(self, value):
-        self.k = value
+        self.k = int(value)
 
     def _on_render_mode(self):
         self.renderer.next_render_mode()
@@ -172,9 +173,11 @@ class MainApplication:
         self.query_mesh_exists = False
         path = path.replace("/", "\\")
         self._on_done(path)
+        os.chdir(self.base_directory)
 
     def _on_cancel(self):
         self.w.close_dialog()
+        os.chdir(self.base_directory)
 
     def _on_done(self, path):
         self.w.close_dialog()
@@ -276,7 +279,7 @@ class MainApplication:
         _, file_name, shape_class = file
         img_name = os.path.splitext(file_name)[0] + ".png"
         img_path = os.path.join(display_db, shape_class, img_name)
-
+        config.lg.log(f"Start adding result {file}, path: {img_path}, exsists: {os.path.isfile(img_path)}, curdir: {os.getcwd()}, ")
         if os.path.isfile(img_path):
             img = o3d.io.read_image(img_path)
             img = self.resize_image(img, img_size)

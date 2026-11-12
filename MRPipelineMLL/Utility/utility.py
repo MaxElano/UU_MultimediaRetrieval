@@ -59,9 +59,9 @@ def load_numpy_file(total_path):
 
 # Takes default global features table
 # Distribution features have to be all, recentely read from numpy
-def combine_feature_vectors(global_features, distribution_features, use_dist_names = True):
+def combine_feature_vectors(global_features, distribution_features, use_dist_names = True, skip_weights_distr=True):
     total_features = []
-
+    config.lg.log(f"Start combining features using dist names: {use_dist_names}")
     if use_dist_names:
         total_features = global_features[:,1:]
         for feature in CustomDistFeature:
@@ -71,11 +71,12 @@ def combine_feature_vectors(global_features, distribution_features, use_dist_nam
     else:
         total_features = global_features[1:]
         for idx, feature_database in enumerate(distribution_features):
-            if idx == distribution_features.shape[0] - 1:
+            if idx == distribution_features.shape[0] - int(skip_weights_distr):
                 continue #SKIP THE WEIGHTS
 
             total_features = np.concatenate((total_features, feature_database[1:]), axis=0)
-
+    config.lg.log(f"Done combining")
+    config.lg.log(f"{total_features}")
     return total_features
 
 # Taken from https://stackoverflow.com/questions/53699012/performant-cartesian-product-cross-join-with-pandas

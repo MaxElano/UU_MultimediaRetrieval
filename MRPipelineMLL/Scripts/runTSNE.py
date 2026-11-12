@@ -11,11 +11,13 @@ customTSNE = CustomTSNE("Data\\DataAnalysis\\featureDatabasesStandardized.npz", 
 #Classes
 
 
-include_list = ["Bicycle", "Knife", "Fish", "Gun", "Mug", "AircraftBuoyant", "Biplane", 'HumanHead', 'House']
+include_list_good = ["Bicycle", "Knife", "Bookset", "Sword", "Helicopter", "Quadruped", "Wheelchair", 'Biplane']
 #customTSNE.show_tsne(include=include_list)
 #customTSNE.test_tsne_values(max_iter=(250,500,50), perplexity=(5,20,5))
-customTSNE.test_tsne_values(test_case_folder_name="medium_list", include=include_list, max_iter=(250,5000,250), perplexity=(5,75,5))
+customTSNE.test_tsne_values(test_case_folder_name="long_list_good_exact", include=include_list_good, max_iter=(250,5000,250), perplexity=(5,75,5))
 
+include_list_bad = ["BuildingNonResidential", "Skyscraper", "House", "Apartment", "Sign", "Drum", "Bus", 'Vase']
+customTSNE.test_tsne_values(test_case_folder_name="long_list_bad_exact", include=include_list_bad, max_iter=(250,5000,250), perplexity=(5,75,5))
 
 # All Classes
 '''AircraftBuoyant' 'Apartment' 'AquaticAnimal' 'Bed' 'Bicycle' 'Biplane'
@@ -31,7 +33,7 @@ customTSNE.test_tsne_values(test_case_folder_name="medium_list", include=include
  'TruckNonContainer' 'Vase' 'Violin' 'Wheel' 'WheelChair'''
 
 #Good
-'''Bycicle Bookset '''
+'''Bycicle Fish Bookset Sword Helicopter (Jet) Quadruped Wheelchair Biplane'''
 
 #Bad
-'''BuildingNonResidential '''
+'''BuildingNonResidential Skyscraper House Apartment Sign Drum Bus Vase'''
