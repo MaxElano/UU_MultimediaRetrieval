@@ -143,7 +143,7 @@ class CustomTSNE():
 
     def show_tsne(self, include=None, exclude=None):
         config.lg.log(f"Showing TSNE")
-        features_embedded, labels, paths = self.create_tsne(max_iter=1000)
+        features_embedded, labels, paths = self.create_tsne(max_iter=750, perplexity=50, early_exaggeration=10)
         config.lg.log(f"\\_TSNE created")
         self.plot(features_embedded, labels, paths, show=True, save=False, include=include, exclude=exclude)
 
@@ -158,7 +158,7 @@ class CustomTSNE():
 
         for case in total_test_values:
             parameter_list = {k: v for k, v in zip(parameter_names, case)}
-            features_embedded, labels, paths = self.create_tsne(n_jobs=-1, method='exact',**parameter_list)
+            features_embedded, labels, paths = self.create_tsne(n_jobs=-1,**parameter_list)
             lines = [f"{k}_{val}" for k,val in parameter_list.items()]
             name = "-".join(lines)
             self.plot(features_embedded, labels, paths, show=False, save=True, name_folder=test_case_folder_name, name_image=name, include=include, exclude=exclude)
