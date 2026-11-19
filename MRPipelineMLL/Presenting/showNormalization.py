@@ -47,7 +47,12 @@ class ShowNormalization:
         self.normalize_button = gui.Button("Normalize")
         self.normalize_button.set_on_clicked(self._on_normalize)
         self.top_buttons.add_child(self.normalize_button)
-    
+
+        self.render_mode_button = gui.Button("Render Mode")
+        self.render_mode_button.set_on_clicked(self._on_render_mode)
+        self.top_buttons.add_child(self.render_mode_button)
+
+
         self.top_container = gui.Vert()
         self.top_container.add_child(self.top_buttons)
         self.w.add_child(self.top_container)
@@ -62,6 +67,10 @@ class ShowNormalization:
         self.w.add_child(self.norm_renderer.scene_widget)
 
         self.w.set_on_layout(self.on_layout)
+    def _on_render_mode(self):
+        self.renderer.next_render_mode()
+        self.norm_renderer.next_render_mode()
+
 
     def run(self):
          self.app.run()

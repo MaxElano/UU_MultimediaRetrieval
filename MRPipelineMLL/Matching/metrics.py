@@ -23,6 +23,9 @@ class MetricsComputer():
             for shape in self.shapes
         }
 
+        self.knn_auc = []
+        self.ann_auc = []
+
     # If no allquery database exists, run that shi, for both ANN and KNN
     # choice to force run allquery db
     # NOTE: DO NOT RUN THIS IT TAKES AGES
@@ -131,6 +134,8 @@ class MetricsComputer():
         return np.mean(sensitivities), np.mean(specificities)
 
     def compute_metrics(self):
+        self.ann_auc = []
+        self.knn_auc = []
         ANN_query_info = self.get_query_results(ANN=True)
         KNN_query_info = self.get_query_results(ANN=False)
         
@@ -150,6 +155,80 @@ class MetricsComputer():
             KNN_sens, KNN_spec = self.compute_ROC(KNN_category)
 
             self.show_ROC(ANN_sens, ANN_spec, KNN_sens, KNN_spec, label=str(category))
+            print(f"Category: {category} | ANN AUC: {self.ann_auc[-1]:.4f} | KNN AUC: {self.knn_auc[-1]:.4f}")
+
+
+        self.show_auc_graph([str(category) for category in categories])
+
+    def show_auc_graph(self, categories):
+        categories = np.array(categories, dtype=str)
+        mask = categories != "New"
+        categories = categories[mask]
+
+        ann_auc = np.array(self.ann_auc)
+        knn_auc = np.array(self.knn_auc)
+        ann_auc = ann_auc[mask]
+        knn_auc = knn_auc[mask]
+
+        idx = np.argsort(ann_auc)
+
+        plt.figure(figsize=(10, 8))
+        plt.margins(y=0)
+        plt.axvline(
+            x=0.5,
+            color='purple',
+            linestyle='--',
+            linewidth=1,
+            alpha=0.8
+        )
+        plt.barh(categories[idx], ann_auc[idx], height=1,
+                color='cornflowerblue', edgecolor='black')
+        plt.yticks(fontsize=5)
+        plt.xticks(fontsize=10)
+
+        plt.xlabel("AUC Score")
+        plt.ylabel("Category")
+        plt.title("ANN Performance Across Categories")
+        plt.xlim(0, 1)
+        plt.grid(axis='x', alpha=0.2)
+        plt.tight_layout()
+
+        filename = f"ANN_AUCS.png"
+        filepath = os.path.join("Data\\DataAnalysis\\ROCs", filename)
+        plt.savefig(filepath, dpi=300)
+        plt.close()
+        print("Saved ", filename, " to filepath ", filepath)
+
+        idx = np.argsort(knn_auc)
+
+        plt.figure(figsize=(10, 8))
+        plt.margins(y=0)
+        plt.axvline(
+            x=0.5,
+            color='purple',
+            linestyle='--',
+            linewidth=1,
+            alpha=0.8
+        )
+
+        plt.barh(categories[idx], knn_auc[idx], height=1,
+                color='cornflowerblue', edgecolor='black')
+        plt.yticks(fontsize=5)
+        plt.xticks(fontsize=10)
+
+        plt.xlabel("AUC Score")
+        plt.ylabel("Category")
+        plt.title("KNN Performance Across Categories")
+        plt.xlim(0, 1)
+        plt.grid(axis='x', alpha=0.2)
+        plt.tight_layout()
+
+        filename = f"KNN_AUCS.png"
+        filepath = os.path.join("Data\\DataAnalysis\\ROCs", filename)
+        plt.savefig(filepath, dpi=300)
+        plt.close()
+        print("Saved ", filename, " to filepath ", filepath)
+
 
     def compute_ROC(self, query_info):
         sens_vals = []
@@ -173,7 +252,9 @@ class MetricsComputer():
         KNN_spec = np.array(KNN_spec)[sorted_indices]
 
         ANN_score = auc(ANN_sens, ANN_spec)
+        self.ann_auc.append(ANN_score)
         KNN_score = auc(KNN_sens, KNN_spec)
+        self.knn_auc.append(KNN_score)
 
         plt.figure(figsize=(8,6))
 
@@ -194,7 +275,7 @@ class MetricsComputer():
         filename = f"ROC_{label}.png"
         filepath = os.path.join("Data\\DataAnalysis\\ROCs", filename)
         plt.savefig(filepath, dpi=300)
-
+        plt.close()
         print("Saved ", filename, " to filepath ", filepath)
 
 

@@ -19,7 +19,7 @@ and divide result by standard deviation of that feature).
 
 class FeatureDataNormalizer():
     def __init__(self):
-        self.global_features_path = "Data\\DataAnalysis\\featureDatabasesStandardized.npz"
+        self.global_features_path = "Data\\DataAnalysis\\featureDatabases.npz"
         self.global_features = util.load_numpy_file(self.global_features_path)
 
     def standardize_all(self, old_path="Data\\DataAnalysis\\featureDatabases.npz", new_path="Data\\DataAnalysis\\featureDatabasesStandardized.npz"):

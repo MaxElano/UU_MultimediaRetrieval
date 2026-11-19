@@ -198,7 +198,7 @@ class FeatureTester():
         _, feature_name = feature.value
         # take 2 shapes from the same category and 1 from a very different one!
         for obj in objects:
-            row = np.where(self.meta_db[:.1] == obj)[0][0]
+            row = np.where(self.meta_db[:,1] == obj)[0][0]
             index = int(self.meta_db[row, 0])
 
             mesh_name = self.meta_db[index, 1]
@@ -207,6 +207,7 @@ class FeatureTester():
             mesh_location = from_database + mesh_category + "\\" + mesh_name
 
             self.ig.generateFromPath([mesh_location], self.ss_save_folder, title)
+            self.ig.generate_from_path([mesh_location], self.ss_save_folder, title)
             _, ax = plt.subplots(figsize=(10, 5))
 
             ax.plot(self.dist_databases[feature_name][int(index)], alpha = 0.3, linewidth = 1)
@@ -215,8 +216,10 @@ class FeatureTester():
             plt.ylabel(f"Distribution variable")
             plt.tight_layout()
             plt.savefig(self.log_save_folder + "\\" + feature_name + "_" + mesh_category + ".png", dpi=300)
+            plt.savefig(self.log_save_folder + "\\" + feature_name + "_" + mesh_category + "_" + mesh_name + ".png", dpi=300)
             plt.close()
 
 
-# ft = FeatureTester()
+#ft = FeatureTester()
+#ft.compare_distribution(DistFeature.D4, ["D00013.npz", "D00487.npz", "m722.npz"])
 # ft.test_feature_extraction()

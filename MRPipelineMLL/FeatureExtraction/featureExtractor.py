@@ -173,7 +173,7 @@ class FeatureExtractor():
                         v1 = vb-va
                         v2 = vc-va
                         v3 = vd-va
-                        volumes.append(np.dot(np.cross(v1, v2), v3)/6)
+                        volumes.append(abs(np.dot(np.cross(v1, v2), v3)/6))
         return self.distribute_values(np.cbrt(volumes), bins)
 
     # returns the specified amount of unique vertices
