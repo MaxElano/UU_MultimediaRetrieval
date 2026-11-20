@@ -222,6 +222,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-/Data/**
-!/Data/OriginalShapeDatabase/.gitkeep
-!/Data/DataAnalysis/.gitkeep
+/Data/OriginalShapeDatabase**
+/Data/TempFiles**
+/Data/Screenshots**

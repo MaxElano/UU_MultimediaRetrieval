@@ -8,4 +8,5 @@ setup(name='MRPipelineMLL',
       author_email='max.ferket2004@gmail.com',
       license='MIT',
       packages=['MRPipelineMLL'],
-      zip_safe=False)
+      zip_safe=False,
+      install_requires = ['matplotlib', 'open3d', 'scipy', 'scikit-learn'])
