@@ -20,7 +20,10 @@ Multimedia-Retrieval
  | MRPipelineMLL
    | ... .py
 
-# How to use
+# How to run:
+For the main querying system, run main.py found in MRPipelineMLL. The database needs to be present for this to work
+
+# Extra info for showOneMesh display
 ## Keybinds
   - Mouse view control
   Left button + drag : Rotate.
