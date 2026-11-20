@@ -279,7 +279,7 @@ class MainApplication:
         _, file_name, shape_class = file
         img_name = os.path.splitext(file_name)[0] + ".png"
         img_path = os.path.join(display_db, shape_class, img_name)
-        config.lg.log(f"Start adding result {file}, path: {img_path}, exsists: {os.path.isfile(img_path)}, curdir: {os.getcwd()}, ")
+        #config.lg.log(f"Start adding result {file}, path: {img_path}, exsists: {os.path.isfile(img_path)}, curdir: {os.getcwd()}, ")
         if os.path.isfile(img_path):
             img = o3d.io.read_image(img_path)
             img = self.resize_image(img, img_size)
